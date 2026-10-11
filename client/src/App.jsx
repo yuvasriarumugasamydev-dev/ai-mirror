@@ -43,7 +43,7 @@ export function App() {
             </span>
           </div>
           <div className="bottom-bar-right">
-            <span className="kiosk-clock">MERN STACK BOUTIQUE KIOSK</span>
+            <span className="kiosk-clock">VASTRA AI BOUTIQUE KIOSK</span>
           </div>
         </footer>
       </div>
