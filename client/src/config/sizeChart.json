@@ -1,0 +1,40 @@
+{
+  "categories": {
+    "blouse": {
+      "displayName": "Saree Blouse (Recommended for Sarees)",
+      "description": "Sarees are free-size drapes (5.5m - 6.2m). Size recommendation determines the tailored blouse fit.",
+      "sizes": {
+        "XS": { "bust": [76, 81], "waist": [60, 65], "shoulder": [34, 36], "ukSize": "6-8" },
+        "S":  { "bust": [82, 87], "waist": [66, 71], "shoulder": [36, 38], "ukSize": "8-10" },
+        "M":  { "bust": [88, 93], "waist": [72, 77], "shoulder": [38, 40], "ukSize": "10-12" },
+        "L":  { "bust": [94, 99], "waist": [78, 83], "shoulder": [40, 42], "ukSize": "12-14" },
+        "XL": { "bust": [100, 107], "waist": [84, 91], "shoulder": [42, 44], "ukSize": "14-16" },
+        "XXL":{ "bust": [108, 116], "waist": [92, 100], "shoulder": [44, 46], "ukSize": "16-18" }
+      }
+    },
+    "kurta": {
+      "displayName": "Kurta & Anarkali",
+      "description": "Traditional tunic and flared ensemble sizing.",
+      "sizes": {
+        "XS": { "bust": [78, 82], "waist": [62, 66], "hip": [86, 90], "shoulder": [35, 37] },
+        "S":  { "bust": [83, 88], "waist": [67, 72], "hip": [91, 96], "shoulder": [37, 39] },
+        "M":  { "bust": [89, 94], "waist": [73, 78], "hip": [97, 102], "shoulder": [39, 41] },
+        "L":  { "bust": [95, 101], "waist": [79, 85], "hip": [103, 109], "shoulder": [41, 43] },
+        "XL": { "bust": [102, 109], "waist": [86, 93], "hip": [110, 117], "shoulder": [43, 45] },
+        "XXL":{ "bust": [110, 118], "waist": [94, 102], "hip": [118, 126], "shoulder": [45, 47] }
+      }
+    },
+    "gown": {
+      "displayName": "Indo-Western Gown",
+      "description": "Floor-length evening and reception gown silhouette.",
+      "sizes": {
+        "XS": { "bust": [76, 81], "waist": [60, 65], "hip": [84, 89] },
+        "S":  { "bust": [82, 87], "waist": [66, 71], "hip": [90, 95] },
+        "M":  { "bust": [88, 93], "waist": [72, 77], "hip": [96, 101] },
+        "L":  { "bust": [94, 99], "waist": [78, 83], "hip": [102, 107] },
+        "XL": { "bust": [100, 107], "waist": [84, 91], "hip": [108, 115] },
+        "XXL":{ "bust": [108, 116], "waist": [92, 100], "hip": [116, 124] }
+      }
+    }
+  }
+}
