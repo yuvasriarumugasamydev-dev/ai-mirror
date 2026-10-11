@@ -7,11 +7,8 @@ export const Header = () => {
     currentTab,
     setCurrentTab,
     t,
-    callStylist,
-    setIsWelcomeActive,
     savedSnaps,
-    sarees,
-    setIsSizeScanOpen
+    sarees
   } = useMirror();
 
   const [timeStr, setTimeStr] = useState('');
@@ -31,10 +28,6 @@ export const Header = () => {
     setCurrentTab(tab);
   };
 
-  const handleExit = () => {
-    playTapSound();
-    setIsWelcomeActive(true);
-  };
 
   return (
     <header className="main-header" id="main-header">
@@ -83,21 +76,7 @@ export const Header = () => {
         </button>
       </nav>
 
-      <div className="header-right">
-        <button className="btn-utility" onClick={() => setIsSizeScanOpen(true)} title="AI Size Recommendation">
-          <i className="fa-solid fa-ruler-combined text-orange"></i>
-          <span className="utility-label">Size Scan</span>
-        </button>
 
-        <button className="btn-utility" onClick={callStylist} title="Call Boutique Stylist">
-          <i className="fa-solid fa-bell-concierge"></i>
-          <span className="utility-label">{t('call_stylist')}</span>
-        </button>
-
-        <button className="btn-utility btn-ghost" onClick={handleExit} title="Return to Welcome Screen">
-          <i className="fa-solid fa-arrow-right-from-bracket"></i>
-        </button>
-      </div>
     </header>
   );
 };
