@@ -216,31 +216,20 @@ export class PromptGuidedEditProvider extends BaseTryOnProvider {
 
     let result = null;
     try {
-      result = await client.predict('/predict', {
+      result = await client.predict('/infer', {
         image: personBlob,
-        prompt: activePrompt,
-        image_2: garmentBlob,
-        seed: Number(seed) || 42
+        prompt: `Wear this person with an authentic luxury Indian ${garmentName || 'silk saree'} in traditional ${drapeStyle} drape style with matching embroidered silk blouse, authentic pleats and rich zari pallu, keeping the exact person's face, skin tone, hairstyle, and body shape intact. Realistic boutique catalog photograph.`,
+        seed: Number(seed) || 42,
+        randomize_seed: true,
+        true_guidance_scale: 4,
+        num_inference_steps: 30,
+        rewrite_prompt: true
       });
     } catch (errPrimary) {
-      // Check for ZeroGPU quota exhaustion
       if (errPrimary.message && (errPrimary.message.includes('ZeroGPU') || errPrimary.message.includes('quota') || errPrimary.message.includes('429'))) {
         throw new Error('Hugging Face free ZeroGPU quota is temporarily exhausted for this Space. Please wait a short moment or try regenerating with another style or seed.');
       }
-
-      console.warn(`[PromptGuidedEditProvider]: /predict endpoint call failed, attempting fallback parameters...`);
-      try {
-        result = await client.predict(0, [
-          personBlob,
-          activePrompt,
-          garmentBlob
-        ]);
-      } catch (errFallback) {
-        if (errFallback.message && (errFallback.message.includes('ZeroGPU') || errFallback.message.includes('quota') || errFallback.message.includes('429'))) {
-          throw new Error('Hugging Face free ZeroGPU quota is temporarily exhausted for this Space. Please wait a short moment or try regenerating with another style or seed.');
-        }
-        throw errPrimary;
-      }
+      throw errPrimary;
     }
 
     if (signal?.aborted) throw new Error('Job was cancelled');
@@ -453,6 +442,7 @@ export class ResilientTryOnManager {
     }
 
     let lastError = null;
+    let falError = null;
 
     for (const step of plan) {
       if (signal?.aborted) throw new Error('Job was cancelled');
@@ -470,6 +460,9 @@ export class ResilientTryOnManager {
         return { resultUrl, provider: step.name };
       } catch (err) {
         lastError = err;
+        if (step.name.includes('Fal.ai')) {
+          falError = err;
+        }
         console.warn(`[TryOn Manager]: Model '${step.name}' failed: ${err.message}. Trying next provider in cascade...`);
         if (err.message.includes('HF_TOKEN not found in server/.env')) {
           throw err;
@@ -477,11 +470,15 @@ export class ResilientTryOnManager {
       }
     }
 
-    let errorDetail = lastError?.message || 'All AI Virtual Try-On models were temporarily busy';
-    if (errorDetail.includes('ZeroGPU') || errorDetail.includes('quota') || errorDetail.includes('429')) {
+    let errorDetail = '';
+    if (falError && (falError.message.includes('TOP_UP') || falError.message.includes('User is locked') || falError.message.includes('403'))) {
+      errorDetail = 'Fal.ai API Error: Your Fal.ai account is locked because credits are exhausted (Reason: TOP_UP required). Please top up your Fal.ai account at https://fal.ai/dashboard/billing or enter a key with active credits in server/.env.';
+    } else if (lastError?.message?.includes('ZeroGPU') || lastError?.message?.includes('quota') || lastError?.message?.includes('429')) {
       errorDetail = 'Hugging Face free ZeroGPU quota is temporarily exhausted for this Space. Please wait a short moment or try regenerating with another style or seed.';
-    } else if (errorDetail.includes('IndexError') || errorDetail.includes('KeyError')) {
+    } else if (lastError?.message?.includes('IndexError') || lastError?.message?.includes('KeyError')) {
       errorDetail = 'Pose keypoint detection issue. Please stand back to keep your full body (head to feet) visible.';
+    } else {
+      errorDetail = lastError?.message || 'All AI Virtual Try-On models were temporarily busy';
     }
 
     throw new Error(`Virtual Try-On unavailable: ${errorDetail}`);
