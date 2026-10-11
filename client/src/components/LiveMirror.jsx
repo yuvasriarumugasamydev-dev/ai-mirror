@@ -577,28 +577,6 @@ export const LiveMirror = () => {
             ></video>
 
             {/* 2. FULL-BODY GUIDE OUTLINE SILHOUETTE OVERLAY (GREEN WHEN WHOLE BODY VISIBLE, RED WHEN NOT) */}
-            {isCameraActive && (
-              <div className={`full-body-guide-overlay ${bodyStatus.isReady ? 'ready' : 'not-ready'}`}>
-                <svg
-                  viewBox="0 0 300 600"
-                  className="body-guide-svg"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  {/* Head */}
-                  <ellipse cx="150" cy="70" rx="36" ry="46" className="guide-path head" />
-                  {/* Neck */}
-                  <path d="M 140 115 L 140 135 M 160 115 L 160 135" className="guide-path" />
-                  {/* Shoulders & Torso */}
-                  <path d="M 90 145 C 115 135, 185 135, 210 145 L 195 270 L 105 270 Z" className="guide-path torso" />
-                  {/* Saree Drape & Full Skirt to Feet */}
-                  <path d="M 105 270 L 65 550 C 110 565, 190 565, 235 550 L 195 270 Z" className="guide-path skirt" />
-                  {/* Feet indicators */}
-                  <ellipse cx="120" cy="565" rx="18" ry="8" className="guide-path feet" />
-                  <ellipse cx="180" cy="565" rx="18" ry="8" className="guide-path feet" />
-                </svg>
-              </div>
-            )}
-
             {/* 3. Camera Connecting State */}
             {!isCameraActive && (
               <div className="camera-connecting-state">
@@ -618,51 +596,6 @@ export const LiveMirror = () => {
             {/* 4. Lighting Ambiance Tint */}
             <div className={`lighting-filter-tint ${lightingPreset}`}></div>
 
-            {/* 5. Live Badge & Watermark */}
-            <div className="mirror-live-badge">
-              <span className="live-dot pulse"></span>
-              <span className="live-badge-text">LIVE PREVIEW</span>
-              <button
-                className="toggle-source-btn"
-                onClick={() => setIsSizeScanOpen(true)}
-                title="AI Size & Fit Measurement Scan"
-              >
-                <i className="fa-solid fa-ruler-combined"></i>{' '}
-                <span>AI Size Scan</span>
-              </button>
-            </div>
-
-            {/* 6. LIVE FULL-BODY HINT BANNER */}
-            {isCameraActive && (
-              <div className={`body-guide-status-pill ${bodyStatus.isReady ? 'ready' : 'advisory'}`}>
-                <i className={`fa-solid ${bodyStatus.isReady ? 'fa-circle-check' : 'fa-sparkles'}`} style={{ color: bodyStatus.isReady ? '#10B981' : '#FF7A1A' }}></i>
-                <span>{bodyStatus.isReady ? '✓ Full body detected! Ready to capture' : 'Full-Body Guide • Align for best drape'}</span>
-              </div>
-            )}
-
-            {/* 7. Currently Draped Saree Card */}
-            {selectedSaree && (
-              <div className="current-draped-card">
-                <div className="draped-saree-thumb">
-                  <img src={selectedSaree.tryOnImage || selectedSaree.image} alt={selectedSaree.name} />
-                </div>
-                <div className="draped-saree-info">
-                  <span className="draped-tag">{t('currently_wearing')}</span>
-                  <h3 className="draped-title">{selectedSaree.name}</h3>
-                  <span className="draped-price">
-                    {selectedSaree.priceFormatted || `₹${selectedSaree.price?.toLocaleString('en-IN')}`}
-                  </span>
-                </div>
-                <button
-                  className="btn-draped-action"
-                  onClick={() => setActiveModalSaree(selectedSaree)}
-                  title="View Saree Details & Clean Garment Asset"
-                >
-                  <i className="fa-solid fa-info-circle"></i>
-                </button>
-              </div>
-            )}
-
             {/* 8. Flash Overlay */}
             <div className={`shutter-flash ${isFlashing ? 'flashing' : ''}`}></div>
 
@@ -678,32 +611,20 @@ export const LiveMirror = () => {
               </div>
             )}
 
-            {/* 10. Bottom Floating UI Bar */}
-            <div className="mirror-floating-controls">
-              <button className="mirror-action-btn secondary" onClick={cycleLighting}>
-                <i className="fa-solid fa-sun-bright"></i>
-                <span>{t(`lighting_${lightingPreset}`)}</span>
-              </button>
-
-              <button
-                className="mirror-action-btn primary capture-btn"
-                onClick={handleCaptureClick}
-                disabled={countdown !== null || tryOnStatus === 'queued' || tryOnStatus === 'processing'}
-                title="Capture Look (3s)"
-              >
-                <div className="capture-btn-inner">
-                  <i className="fa-solid fa-camera"></i>
-                </div>
-                <span>
-                  {countdown !== null ? 'Capturing...' : 'Capture Look (3s)'}
-                </span>
-              </button>
-
-              <button className="mirror-action-btn secondary" onClick={handleQuickCompare}>
-                <i className="fa-solid fa-plus-minus"></i>
-                <span>{t('add_to_compare')}</span>
-              </button>
-            </div>
+            {/* 10. Minimalist Circular Shutter Button (Image 5 style) */}
+            {isCameraActive && (
+              <div className="mirror-shutter-container">
+                <button
+                  className="mirror-shutter-circle-btn"
+                  onClick={handleCaptureClick}
+                  disabled={countdown !== null || tryOnStatus === 'queued' || tryOnStatus === 'processing'}
+                  title="Capture Look"
+                  aria-label="Capture Look"
+                >
+                  <i className="fa-solid fa-video"></i>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
