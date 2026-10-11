@@ -272,14 +272,76 @@ export class PromptGuidedEditProvider extends BaseTryOnProvider {
 }
 
 /**
+ * Fal.ai Ultra-Fast Commercial Production Provider (2-4s response, 99.9% uptime)
+ * Commercial High-Fidelity Neural Virtual Try-On
+ */
+export class FalAiTryOnProvider extends BaseTryOnProvider {
+  constructor() {
+    super();
+  }
+
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, category = 'saree', drapeStyle = 'Nivi', signal }) {
+    const falKey = process.env.FAL_KEY?.trim();
+    if (!falKey) {
+      throw new Error('FAL_KEY not configured in server/.env');
+    }
+
+    if (signal?.aborted) throw new Error('Job was cancelled');
+
+    const personBase64 = `data:image/jpeg;base64,${personBuffer.toString('base64')}`;
+    const garmentBase64 = `data:image/png;base64,${garmentBuffer.toString('base64')}`;
+
+    console.log(`[FalAiTryOnProvider]: Submitting high-speed commercial try-on for '${garmentName}' (${drapeStyle})...`);
+
+    const isFullLength = ['saree', 'bridal', 'kanjivaram', 'banarasi', 'organza', 'silk', 'gown'].some(
+      (c) => (category || '').toLowerCase().includes(c)
+    );
+
+    const response = await fetch('https://fal.run/fal-ai/cat-vton', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${falKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        human_image_url: personBase64,
+        garment_image_url: garmentBase64,
+        cloth_type: isFullLength ? 'overall' : 'upper'
+      }),
+      signal
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Fal.ai API error (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    const resultImageUrl = data?.image?.url || data?.images?.[0]?.url;
+
+    if (!resultImageUrl) {
+      throw new Error('Fal.ai did not return an image URL');
+    }
+
+    try {
+      const imgRes = await fetch(resultImageUrl);
+      const ab = await imgRes.arrayBuffer();
+      return `data:image/jpeg;base64,${Buffer.from(ab).toString('base64')}`;
+    } catch {
+      return resultImageUrl;
+    }
+  }
+}
+
+/**
  * Resilient Multi-Model Manager
- * Routes sarees to Prompt-Guided Image Edit (Qwen / FLUX Kontext) by default,
- * gowns to CatVTON (full-length overall),
- * tops/kurtas/shirts to IDM-VTON,
- * with multi-space fallback chain.
+ * Routes to Fal.ai (Commercial Production) if FAL_KEY is present,
+ * or cascades to Prompt-Guided Image Edit (Qwen / FLUX Kontext),
+ * CatVTON (full-length overall), and IDM-VTON on free Hugging Face.
  */
 export class ResilientTryOnManager {
   constructor() {
+    this.falAi = new FalAiTryOnProvider();
     this.imageEditPrimary = new PromptGuidedEditProvider('Qwen/Qwen-Image-Edit');
     this.imageEditBackup = new PromptGuidedEditProvider('multimodalart/FLUX.1-Kontext');
     this.catvton = new CatVTONProvider('multimodalart/CatVTON-zerogpu');
@@ -351,36 +413,43 @@ export class ResilientTryOnManager {
     const isGown = ['gown', 'lehenga', 'anarkali'].some((s) => catLower.includes(s));
     const isTop = ['top', 'shirt', 'kurta', 'tshirt', 'blouse'].some((s) => catLower.includes(s));
 
+    const hasFalKey = !!process.env.FAL_KEY?.trim();
+
     // Determine execution plan
-    // Requirement: For category "saree", Image-Edit is DEFAULT! CatVTON/IDM-VTON only for tops, kurtas, shirts, gowns.
+    // If FAL_KEY is configured in server/.env, Fal.ai runs first for commercial ultra-fast (2-4s) results!
     let plan = [];
+
+    if (modelPreference === 'fal_ai' || (hasFalKey && (modelPreference === 'auto' || isSaree || isGown))) {
+      plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
+    }
+
     if (modelPreference === 'image_edit' || (modelPreference === 'auto' && isSaree)) {
-      plan = [
+      plan.push(
         { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
         { name: 'AI Image Edit (FLUX Kontext)', provider: this.imageEditBackup },
         { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
         { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-      ];
+      );
     } else if (modelPreference === 'catvton' || (modelPreference === 'auto' && isGown)) {
-      plan = [
+      plan.push(
         { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
         { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
         { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-      ];
+      );
     } else if (modelPreference === 'idm_vton' || (modelPreference === 'auto' && isTop)) {
-      plan = [
+      plan.push(
         { name: 'IDM-VTON (Upper-Body)', provider: this.idmvtonPrimary },
         { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup },
         { name: 'CatVTON (Overall)', provider: this.catvton }
-      ];
+      );
     } else {
       // Default fallback plan (saree first)
-      plan = [
+      plan.push(
         { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
         { name: 'AI Image Edit (FLUX Kontext)', provider: this.imageEditBackup },
         { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
         { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-      ];
+      );
     }
 
     let lastError = null;

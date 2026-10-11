@@ -162,12 +162,21 @@ export const AITryOnModal = ({
                   <i className="fa-solid fa-dice"></i> Regenerate with a new seed
                 </button>
                 {onRetryWithModel && (
-                  <button
-                    className="btn-model-chip"
-                    onClick={() => onRetryWithModel('catvton')}
-                  >
-                    <i className="fa-solid fa-vest"></i> Fallback: CatVTON
-                  </button>
+                  <>
+                    <button
+                      className="btn-model-chip"
+                      onClick={() => onRetryWithModel('fal_ai')}
+                      style={{ border: '1.5px solid #FF7A1A', color: '#FF7A1A' }}
+                    >
+                      <i className="fa-solid fa-bolt"></i> Retry: Fal.ai Turbo (2s)
+                    </button>
+                    <button
+                      className="btn-model-chip"
+                      onClick={() => onRetryWithModel('catvton')}
+                    >
+                      <i className="fa-solid fa-vest"></i> Fallback: CatVTON
+                    </button>
+                  </>
                 )}
               </div>
             </div>

@@ -725,8 +725,9 @@ export const LiveMirror = () => {
               <div className="pill-group">
                 {[
                   { id: 'auto', label: 'Auto (Recommended)' },
-                  { id: 'catvton', label: 'CatVTON (Full Length)' },
-                  { id: 'image_edit', label: 'AI Drape Edit' }
+                  { id: 'fal_ai', label: '⚡ Fal.ai (2s Turbo)' },
+                  { id: 'image_edit', label: 'AI Drape Edit' },
+                  { id: 'catvton', label: 'CatVTON (Overall)' }
                 ].map((m) => (
                   <button
                     key={m.id}
