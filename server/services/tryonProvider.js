@@ -88,36 +88,41 @@ export class CatVTONProvider extends BaseTryOnProvider {
 }
 
 /**
- * IDM-VTON Provider: Upper-body try-on (Designed for tops, kurtas, shirts) with CROP DISABLED
+ * IDM-VTON Provider: High-Fidelity Diffusion Try-On with CROP DISABLED
+ * Generates true AI Virtual Try-On draping the garment realistically on the body
  */
 export class IDMVTONProvider extends BaseTryOnProvider {
-  constructor(spaceName = 'Nymbo/Virtual-Try-On') {
+  constructor(spaceName = 'yisol/IDM-VTON') {
     super();
     this.spaceName = spaceName;
     this.client = null;
   }
 
   async getClient() {
-    const token = process.env.HF_TOKEN?.trim();
-    if (!token) throw new Error('HF_TOKEN not found in server/.env');
-
     if (!this.client) {
       const { Client } = await import('@gradio/client');
       console.log(`[IDMVTONProvider]: Connecting to ${this.spaceName}...`);
-      this.client = await Client.connect(this.spaceName, { token });
-      console.log(`[IDMVTONProvider]: Connected to ${this.spaceName}`);
+      try {
+        // Try direct connection first to avoid binding to exhausted individual quota
+        this.client = await Client.connect(this.spaceName);
+        console.log(`[IDMVTONProvider]: Connected to ${this.spaceName} (Direct)`);
+      } catch (err) {
+        console.warn(`[IDMVTONProvider]: Direct connection failed (${err.message}), trying with token...`);
+        const token = process.env.HF_TOKEN?.trim();
+        this.client = await Client.connect(this.spaceName, token ? { token } : undefined);
+      }
     }
     return this.client;
   }
 
-  async generateTryOn({ personBuffer, garmentBuffer, garmentName, denoiseSteps = 30, seed = 42, signal }) {
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, denoiseSteps = 25, seed = 42, signal }) {
     const client = await this.getClient();
     if (signal?.aborted) throw new Error('Job was cancelled');
 
     const personBlob = new Blob([personBuffer], { type: 'image/jpeg' });
-    const garmentBlob = new Blob([garmentBuffer], { type: 'image/jpeg' });
+    const garmentBlob = new Blob([garmentBuffer], { type: 'image/png' });
 
-    console.log(`[IDMVTONProvider]: Submitting try-on (crop OFF) for '${garmentName}'...`);
+    console.log(`[IDMVTONProvider]: Submitting generative try-on for '${garmentName}'...`);
 
     const result = await client.predict('/tryon', {
       dict: {
@@ -126,10 +131,10 @@ export class IDMVTONProvider extends BaseTryOnProvider {
         composite: null
       },
       garm_img: garmentBlob,
-      garment_des: garmentName || 'Traditional Silk Saree',
+      garment_des: garmentName ? `Traditional Indian silk saree, ${garmentName}` : 'Traditional Indian silk saree with ornate gold zari border',
       is_checked: true,
-      is_checked_crop: false, // NO CROPPING: TURN CROP OFF AS REQUIRED
-      denoise_steps: denoiseSteps || 30,
+      is_checked_crop: false, // NO CROPPING: PRESERVES FULL BODY AND HEAD!
+      denoise_steps: denoiseSteps || 25,
       seed: seed || 42
     });
 
@@ -340,33 +345,9 @@ export class LocalDrapeProvider extends BaseTryOnProvider {
 
     // 2. Identify if garmentBuffer has transparent alpha
     let cleanGarment = garmentBuffer;
-    let hasAlpha = false;
-    try {
-      const meta = await sharp(garmentBuffer).metadata();
-      hasAlpha = meta.hasAlpha && meta.channels === 4;
-    } catch (e) {}
 
-    // If garmentBuffer is not transparent, try to load transparent cutouts tryon_*.png
-    if (!hasAlpha) {
-      const assetsDir = path.resolve(__dirname, '../../assets');
-      const candidateFiles = [
-        path.join(assetsDir, 'tryon_saree-1.png'),
-        path.join(assetsDir, 'tryon_saree-2.png'),
-        path.join(assetsDir, 'tryon_saree-3.png'),
-        path.join(assetsDir, 'tryon_saree-4.png'),
-        path.join(assetsDir, 'tryon_test.png')
-      ];
-      for (const cf of candidateFiles) {
-        if (fs.existsSync(cf)) {
-          cleanGarment = fs.readFileSync(cf);
-          hasAlpha = true;
-          break;
-        }
-      }
-    }
-
-    // 3. Size saree naturally from shoulders/torso down to ankles (74% of height)
-    const gHeight = Math.round(height * 0.74);
+    // 3. Size saree naturally from shoulders/chest down to ankles (80% of height)
+    const gHeight = Math.round(height * 0.80);
     const gWidth = width;
 
     const drapedGarment = await sharp(cleanGarment)
@@ -397,30 +378,32 @@ export class LocalDrapeProvider extends BaseTryOnProvider {
 
 /**
  * Resilient Multi-Model Manager
- * Routes to Fal.ai (Commercial Production) if FAL_KEY is present,
- * or cascades to Prompt-Guided Image Edit (Qwen / FLUX Kontext),
- * CatVTON (full-length overall), IDM-VTON, and Local Neural Drape Engine.
+ * Routes to IDM-VTON (Photorealistic AI), Fal.ai, CatVTON, and Local Neural Drape Engine.
  */
 export class ResilientTryOnManager {
   constructor() {
     this.localDrape = new LocalDrapeProvider();
     this.falAi = new FalAiTryOnProvider();
-    this.imageEditPrimary = new PromptGuidedEditProvider('Qwen/Qwen-Image-Edit');
-    this.imageEditBackup = new PromptGuidedEditProvider('multimodalart/FLUX.1-Kontext');
+    this.idmvtonPrimary = new IDMVTONProvider('yisol/IDM-VTON');
     this.catvton = new CatVTONProvider('multimodalart/CatVTON-zerogpu');
-    this.idmvtonPrimary = new IDMVTONProvider('Nymbo/Virtual-Try-On');
-    this.idmvtonBackup = new IDMVTONProvider('yisol/IDM-VTON');
+    this.imageEditPrimary = new PromptGuidedEditProvider('Qwen/Qwen-Image-Edit');
+    this.idmvtonBackup = new IDMVTONProvider('Nymbo/Virtual-Try-On');
   }
 
-  /**
-   * NO CROPPING: Fit image inside 768x1024 portrait canvas by PADDING (never cropping)
-   */
-  async preprocessImageNoCrop(buffer, width = 768, height = 1024) {
+  async preprocessPersonNoCrop(buffer, width = 768, height = 1024) {
+    return await sharp(buffer)
+      .resize(width, height, { fit: 'cover' })
+      .jpeg({ quality: 95 })
+      .toBuffer();
+  }
+
+  async preprocessGarmentNoCrop(buffer, width = 768, height = 1024) {
     return await sharp(buffer)
       .resize(width, height, {
-        fit: 'cover'
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
       })
-      .jpeg({ quality: 95 })
+      .png()
       .toBuffer();
   }
 
@@ -452,23 +435,18 @@ export class ResilientTryOnManager {
     garmentPathOrUrl,
     garmentName = 'Silk Saree',
     category = 'saree',
-    modelPreference = 'auto', // 'auto' | 'local' | 'image_edit' | 'catvton' | 'idm_vton'
+    modelPreference = 'auto', // 'auto' | 'local' | 'fal_ai' | 'idm_vton' | 'catvton'
     drapeStyle = 'Nivi',
-    denoiseSteps = 30,
+    denoiseSteps = 25,
     seed = 42,
     signal
   }) {
     // 1. Resolve garment image (prioritizes clean tryOnImage without background)
     const rawGarmentBuffer = await this.resolveGarmentBuffer(garmentPathOrUrl);
 
-    // 2. Preprocess both images by PADDING to 768x1024 (NO CROPPING)
-    const preprocessedPerson = await this.preprocessImageNoCrop(personBuffer, 768, 1024);
-    const preprocessedGarment = await this.preprocessImageNoCrop(rawGarmentBuffer, 768, 1024);
-
-    const catLower = (category || '').toLowerCase().trim();
-    const isSaree = ['saree', 'bridal', 'kanjivaram', 'banarasi', 'organza', 'silk'].some((s) => catLower.includes(s));
-    const isGown = ['gown', 'lehenga', 'anarkali'].some((s) => catLower.includes(s));
-    const isTop = ['top', 'shirt', 'kurta', 'tshirt', 'blouse'].some((s) => catLower.includes(s));
+    // 2. Preprocess both images (Person: full-frame cover JPEG, Garment: transparent PNG)
+    const preprocessedPerson = await this.preprocessPersonNoCrop(personBuffer, 768, 1024);
+    const preprocessedGarment = await this.preprocessGarmentNoCrop(rawGarmentBuffer, 768, 1024);
 
     const hasFalKey = !!process.env.FAL_KEY?.trim();
 
@@ -476,43 +454,24 @@ export class ResilientTryOnManager {
     let plan = [];
 
     if (modelPreference === 'local') {
-      // 100% Local Neural Drape Engine execution (Instant, offline, zero API quota)
+      // User explicitly requested local draper
       plan.push({ name: 'Local Neural Drape Engine', provider: this.localDrape });
     } else {
-      if (modelPreference === 'fal_ai' || (hasFalKey && (modelPreference === 'auto' || isSaree || isGown))) {
+      // 1. Primary: High-fidelity Generative Virtual Try-On via IDM-VTON (Proven photorealistic)
+      plan.push({ name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary });
+
+      if (modelPreference === 'fal_ai' && hasFalKey) {
         plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
       }
 
-      if (modelPreference === 'image_edit' || (modelPreference === 'auto' && isSaree)) {
-        plan.push(
-          { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-          { name: 'AI Image Edit (FLUX Kontext)', provider: this.imageEditBackup },
-          { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-          { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-        );
-      } else if (modelPreference === 'catvton' || (modelPreference === 'auto' && isGown)) {
-        plan.push(
-          { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-          { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-          { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-        );
-      } else if (modelPreference === 'idm_vton' || (modelPreference === 'auto' && isTop)) {
-        plan.push(
-          { name: 'IDM-VTON (Upper-Body)', provider: this.idmvtonPrimary },
-          { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup },
-          { name: 'CatVTON (Overall)', provider: this.catvton }
-        );
-      } else {
-        // Default fallback plan (saree first)
-        plan.push(
-          { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-          { name: 'AI Image Edit (FLUX Kontext)', provider: this.imageEditBackup },
-          { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-          { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-        );
-      }
+      // 2. Cascading generative backups
+      plan.push(
+        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
+        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
+        { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup }
+      );
 
-      // Seamless Guaranteed Local Fallback: Never leave client stuck with quota/error screen!
+      // 3. Seamless Local Fallback
       plan.push({ name: 'Local Neural Drape Engine', provider: this.localDrape });
     }
 
