@@ -5,7 +5,6 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
-import { seedDatabase } from './seed.js';
 import sareeRoutes from './routes/sareeRoutes.js';
 import snapshotRoutes from './routes/snapshotRoutes.js';
 import stylistRoutes from './routes/stylistRoutes.js';
@@ -77,7 +76,6 @@ app.get('/api/health', (req, res) => {
 // Start Server & Connect MongoDB
 const startServer = async () => {
   await connectDB();
-  await seedDatabase();
 
   const lanIp = getLanIpAddress();
 

@@ -2,47 +2,58 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Saree } from '../models/Saree.js';
-import { INITIAL_SAREES } from '../seed.js';
 import { removeGarmentBackground } from '../services/backgroundRemovalService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const LOCAL_SAREES_PATH = path.resolve(__dirname, '../data/sarees.json');
+
+/**
+ * Load sarees directly from local JSON file (no DB seed dependency)
+ */
+export const getLocalSareesData = () => {
+  try {
+    if (fs.existsSync(LOCAL_SAREES_PATH)) {
+      const raw = fs.readFileSync(LOCAL_SAREES_PATH, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('[sareeController] Error reading local sarees.json:', err.message);
+  }
+  return [];
+};
 
 export const getAllSarees = async (req, res) => {
   try {
     const { category } = req.query;
-    let query = {};
+    let sarees = getLocalSareesData();
+
     if (category && category !== 'all') {
-      if (category === 'bridal') {
-        query = { isBridal: true };
-      } else {
-        query = { category };
-      }
+      sarees = category === 'bridal' 
+        ? sarees.filter(s => s.isBridal)
+        : sarees.filter(s => s.category === category);
     }
-    const sarees = await Saree.find(query);
-    if (sarees && sarees.length > 0) {
-      return res.json({ success: true, count: sarees.length, data: sarees });
-    }
-    let filtered = INITIAL_SAREES;
-    if (category && category !== 'all') {
-      filtered = category === 'bridal' 
-        ? INITIAL_SAREES.filter(s => s.isBridal)
-        : INITIAL_SAREES.filter(s => s.category === category);
-    }
-    return res.json({ success: true, count: filtered.length, data: filtered });
+
+    return res.json({ success: true, count: sarees.length, data: sarees });
   } catch (error) {
     console.error('Error fetching sarees:', error);
-    return res.json({ success: true, count: INITIAL_SAREES.length, data: INITIAL_SAREES });
+    const fallback = getLocalSareesData();
+    return res.json({ success: true, count: fallback.length, data: fallback });
   }
 };
 
 export const getSareeById = async (req, res) => {
   try {
     const { id } = req.params;
-    let saree = await Saree.findOne({ sareeId: id });
+    const sarees = getLocalSareesData();
+    let saree = sarees.find(s => s.sareeId === id || s._id === id);
+
     if (!saree) {
-      saree = INITIAL_SAREES.find(s => s.sareeId === id);
+      try {
+        saree = await Saree.findOne({ sareeId: id });
+      } catch (e) {}
     }
+
     if (!saree) {
       return res.status(404).json({ success: false, message: 'Saree not found' });
     }
@@ -59,9 +70,12 @@ export const getSareeById = async (req, res) => {
 export const generateSareeTryOnImage = async (req, res) => {
   try {
     const { id } = req.params;
-    let saree = await Saree.findOne({ sareeId: id });
+    const sarees = getLocalSareesData();
+    let saree = sarees.find(s => s.sareeId === id || s._id === id);
     if (!saree) {
-      saree = INITIAL_SAREES.find(s => s.sareeId === id);
+      try {
+        saree = await Saree.findOne({ sareeId: id });
+      } catch (e) {}
     }
     if (!saree) {
       return res.status(404).json({ success: false, message: 'Saree not found' });
@@ -122,11 +136,25 @@ export const updateSareeTryOnImage = async (req, res) => {
     const { id } = req.params;
     const { tryOnImage } = req.body;
 
-    let saree = await Saree.findOne({ sareeId: id });
-    if (saree) {
-      saree.tryOnImage = tryOnImage;
-      await saree.save();
+    // Update local JSON file
+    const sarees = getLocalSareesData();
+    const idx = sarees.findIndex(s => s.sareeId === id || s._id === id);
+    if (idx !== -1) {
+      sarees[idx].tryOnImage = tryOnImage;
+      try {
+        fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+      } catch (e) {
+        console.error('Error writing local sarees.json:', e);
+      }
     }
+
+    try {
+      let saree = await Saree.findOne({ sareeId: id });
+      if (saree) {
+        saree.tryOnImage = tryOnImage;
+        await saree.save();
+      }
+    } catch (e) {}
 
     return res.json({ success: true, message: 'Try-on image updated', tryOnImage });
   } catch (error) {
