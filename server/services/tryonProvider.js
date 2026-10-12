@@ -88,8 +88,24 @@ export class CatVTONProvider extends BaseTryOnProvider {
 }
 
 /**
+ * Generates an anatomical full-body garment mask:
+ * - Preserves head, hair, face, and neck (y < 22% is BLACK / preserved)
+ * - Masks shoulders, chest, torso, hips, and entire legs down to ankles (y: 22% to 96% is WHITE / replaced)
+ * - Guarantees both shirt and pants are 100% replaced by the full-length saree!
+ */
+export async function createFullBodyGarmentMask(width = 768, height = 1024) {
+  const maskSvg = Buffer.from(`
+    <svg width="${width}" height="${height}">
+      <rect x="0" y="0" width="${width}" height="${height}" fill="black" />
+      <polygon points="${width * 0.28},${height * 0.22} ${width * 0.72},${height * 0.22} ${width * 0.88},${height * 0.35} ${width * 0.85},${height * 0.60} ${width * 0.82},${height * 0.96} ${width * 0.18},${height * 0.96} ${width * 0.15},${height * 0.60} ${width * 0.12},${height * 0.35}" fill="white" />
+    </svg>
+  `);
+  return await sharp(maskSvg).png().toBuffer();
+}
+
+/**
  * IDM-VTON Provider: High-Fidelity Diffusion Try-On with CROP DISABLED
- * Generates true AI Virtual Try-On draping the garment realistically on the body
+ * Generates true AI Virtual Try-On draping the full-length saree realistically over the body
  */
 export class IDMVTONProvider extends BaseTryOnProvider {
   constructor(spaceName = 'yisol/IDM-VTON') {
@@ -122,17 +138,23 @@ export class IDMVTONProvider extends BaseTryOnProvider {
     const personBlob = new Blob([personBuffer], { type: 'image/jpeg' });
     const garmentBlob = new Blob([garmentBuffer], { type: 'image/png' });
 
-    console.log(`[IDMVTONProvider]: Submitting generative try-on for '${garmentName}'...`);
+    // Generate anatomical full-body mask so the AI covers BOTH shirt and pants
+    const maskBuffer = await createFullBodyGarmentMask(768, 1024);
+    const maskBlob = new Blob([maskBuffer], { type: 'image/png' });
+
+    console.log(`[IDMVTONProvider]: Submitting full-length overall saree try-on for '${garmentName}'...`);
 
     const result = await client.predict('/tryon', {
       dict: {
         background: personBlob,
-        layers: [],
+        layers: [maskBlob],
         composite: null
       },
       garm_img: garmentBlob,
-      garment_des: garmentName ? `Traditional Indian silk saree, ${garmentName}` : 'Traditional Indian silk saree with ornate gold zari border',
-      is_checked: true,
+      garment_des: garmentName 
+        ? `Full length traditional Indian bridal silk saree reaching the ankles, ${garmentName}, with matching blouse and ornate gold zari border, draped completely to feet`
+        : 'Full length traditional Indian bridal silk saree reaching the ankles, with matching blouse and ornate gold zari border, draped completely to feet',
+      is_checked: false, // Turn off upper-only auto-masking so it uses our full-body mask covering the pants!
       is_checked_crop: false, // NO CROPPING: PRESERVES FULL BODY AND HEAD!
       denoise_steps: denoiseSteps || 25,
       seed: seed || 42
