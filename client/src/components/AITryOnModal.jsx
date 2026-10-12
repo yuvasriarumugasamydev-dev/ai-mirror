@@ -165,6 +165,13 @@ export const AITryOnModal = ({
                   <>
                     <button
                       className="btn-model-chip"
+                      onClick={() => onRetryWithModel('local')}
+                      style={{ border: '1.5px solid #10B981', color: '#10B981', fontWeight: 700 }}
+                    >
+                      <i className="fa-solid fa-laptop-code"></i> Instant Local Drape (Offline / 100% Free)
+                    </button>
+                    <button
+                      className="btn-model-chip"
                       onClick={() => onRetryWithModel('fal_ai')}
                       style={{ border: '1.5px solid #FF7A1A', color: '#FF7A1A' }}
                     >

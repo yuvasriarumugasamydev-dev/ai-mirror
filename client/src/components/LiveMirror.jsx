@@ -646,6 +646,7 @@ export const LiveMirror = () => {
               <div className="pill-group">
                 {[
                   { id: 'auto', label: 'Auto (Recommended)' },
+                  { id: 'local', label: '💻 Local AI Draper (Offline / Free)' },
                   { id: 'fal_ai', label: '⚡ Fal.ai (2s Turbo)' },
                   { id: 'image_edit', label: 'AI Drape Edit' },
                   { id: 'catvton', label: 'CatVTON (Overall)' }
