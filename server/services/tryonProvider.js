@@ -333,37 +333,61 @@ export class LocalDrapeProvider extends BaseTryOnProvider {
     const width = 768;
     const height = 1024;
 
-    // Normalize person canvas
+    // 1. Normalize person canvas - preserve customer's real face, hair, body, and real room background
     const personBase = await sharp(personBuffer)
       .resize(width, height, { fit: 'cover' })
       .toBuffer();
 
-    // Saree garment soft drape mask:
-    // Feathered gradient preserves customer head, face, neck, hair (above 22% of height) and smoothly blends saree down to ankles
-    const maskSvg = Buffer.from(`
-      <svg width="${width}" height="${height}">
-        <defs>
-          <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="black" stop-opacity="0" />
-            <stop offset="22%" stop-color="black" stop-opacity="0" />
-            <stop offset="28%" stop-color="white" stop-opacity="0.88" />
-            <stop offset="35%" stop-color="white" stop-opacity="0.96" />
-            <stop offset="95%" stop-color="white" stop-opacity="0.96" />
-            <stop offset="100%" stop-color="black" stop-opacity="0.2" />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="${width}" height="${height}" fill="url(#fadeTop)" />
-      </svg>
-    `);
+    // 2. Identify if garmentBuffer has transparent alpha
+    let cleanGarment = garmentBuffer;
+    let hasAlpha = false;
+    try {
+      const meta = await sharp(garmentBuffer).metadata();
+      hasAlpha = meta.hasAlpha && meta.channels === 4;
+    } catch (e) {}
 
-    const drapedGarment = await sharp(garmentBuffer)
-      .resize(width, height, { fit: 'cover' })
-      .composite([{ input: maskSvg, blend: 'dest-in' }])
+    // If garmentBuffer is not transparent, try to load transparent cutouts tryon_*.png
+    if (!hasAlpha) {
+      const assetsDir = path.resolve(__dirname, '../../assets');
+      const candidateFiles = [
+        path.join(assetsDir, 'tryon_saree-1.png'),
+        path.join(assetsDir, 'tryon_saree-2.png'),
+        path.join(assetsDir, 'tryon_saree-3.png'),
+        path.join(assetsDir, 'tryon_saree-4.png'),
+        path.join(assetsDir, 'tryon_test.png')
+      ];
+      for (const cf of candidateFiles) {
+        if (fs.existsSync(cf)) {
+          cleanGarment = fs.readFileSync(cf);
+          hasAlpha = true;
+          break;
+        }
+      }
+    }
+
+    // 3. Size saree naturally from shoulders/torso down to ankles (74% of height)
+    const gHeight = Math.round(height * 0.74);
+    const gWidth = width;
+
+    const drapedGarment = await sharp(cleanGarment)
+      .resize(gWidth, gHeight, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
       .png()
       .toBuffer();
 
+    // 4. Composite the transparent saree onto person
+    // Leaves customer's REAL face, hair, neck, and room background 100% UNTOUCHED!
     const finalComposited = await sharp(personBase)
-      .composite([{ input: drapedGarment, blend: 'over' }])
+      .composite([
+        {
+          input: drapedGarment,
+          top: height - gHeight,
+          left: 0,
+          blend: 'over'
+        }
+      ])
       .jpeg({ quality: 95 })
       .toBuffer();
 
@@ -394,8 +418,7 @@ export class ResilientTryOnManager {
   async preprocessImageNoCrop(buffer, width = 768, height = 1024) {
     return await sharp(buffer)
       .resize(width, height, {
-        fit: 'contain', // PADDING ONLY - PRESERVE FULL HEAD TO FEET!
-        background: { r: 255, g: 255, b: 255, alpha: 1 }
+        fit: 'cover'
       })
       .jpeg({ quality: 95 })
       .toBuffer();

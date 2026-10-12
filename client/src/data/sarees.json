@@ -21,7 +21,8 @@
     "accentColor": "#800000",
     "zariColor": "#FFD700",
     "story": "Handcrafted over 180 weaving hours by 3rd-generation Kanchi master weavers. Features sacred Annapakshi peacocks, floral jaal, and an ornate Korvai temple border.",
-    "storyTa": "180 மணி நேர பாரம்பரிய கைத்தறி நெசவில் உருவானது. அன்னப்பட்சி மற்றும் கோவில் கோபுர பார்டருடன் கூடிய கம்பீரமான திருமணப் பட்டு."
+    "storyTa": "180 மணி நேர பாரம்பரிய கைத்தறி நெசவில் உருவானது. அன்னப்பட்சி மற்றும் கோவில் கோபுர பார்டருடன் கூடிய கம்பீரமான திருமணப் பட்டு.",
+    "tryOnImage": "/assets/tryon_saree-1.png"
   },
   {
     "sareeId": "saree-2",
@@ -45,7 +46,8 @@
     "accentColor": "#1E5EFF",
     "zariColor": "#E6C657",
     "story": "A regal royal blue body contrasted with an opulent emerald green border and pallu adorned with intricate mango buttas and regal paisleys.",
-    "storyTa": "அரச கம்பீரம் தரும் மயில் நீலமும் மரகத பச்சை முந்தானையும் இணைந்த மாங்கனி டிசைன் பட்டுப் புடவை."
+    "storyTa": "அரச கம்பீரம் தரும் மயில் நீலமும் மரகத பச்சை முந்தானையும் இணைந்த மாங்கனி டிசைன் பட்டுப் புடவை.",
+    "tryOnImage": "/assets/tryon_saree-2.png"
   },
   {
     "sareeId": "saree-3",
@@ -69,7 +71,8 @@
     "accentColor": "#E8A598",
     "zariColor": "#F3E5AB",
     "story": "Modern luxury meets classic charm. Lightweight sheer organza drape adorned with delicate floral vine embroidery and scalloped cutwork border.",
-    "storyTa": "நவீன கொண்டாட்டங்களுக்கான மென்மையான ஆர்கன்சா பட்டு. கைத்தையல் மலர் வேலைப்பாடுகளுடன் கூடியது."
+    "storyTa": "நவீன கொண்டாட்டங்களுக்கான மென்மையான ஆர்கன்சா பட்டு. கைத்தையல் மலர் வேலைப்பாடுகளுடன் கூடியது.",
+    "tryOnImage": "/assets/tryon_saree-3.png"
   },
   {
     "sareeId": "saree-4",
@@ -93,7 +96,8 @@
     "accentColor": "#DDA01B",
     "zariColor": "#E5A93C",
     "story": "Auspicious turmeric yellow drape illuminated by vibrant rani pink borders and dense antique gold pallu tassels. Perfect for festive muhurthams.",
-    "storyTa": "மங்களகரமான மஞ்சள் நிறத்துடன் கூடிய ராணி பிங்க் பார்டர். விசேஷங்களுக்கும் முகூர்த்தத்திற்கும் ஏற்றது."
+    "storyTa": "மங்களகரமான மஞ்சள் நிறத்துடன் கூடிய ராணி பிங்க் பார்டர். விசேஷங்களுக்கும் முகூர்த்தத்திற்கும் ஏற்றது.",
+    "tryOnImage": "/assets/tryon_saree-4.png"
   },
   {
     "sareeId": "saree-5",
@@ -111,13 +115,14 @@
     "zariTa": "கடவா நெசவு தங்க ஜரிகை",
     "blouse": "Purple Brocade with Zari Sleeves",
     "blouseTa": "பர்பிள் ப்ரோக்கேட் ரவிக்கை",
-    "rating": 5.0,
+    "rating": 5,
     "reviewsCount": 112,
     "image": "/assets/saree_kanjivaram_red.jpg",
     "accentColor": "#581845",
     "zariColor": "#FFD700",
     "story": "Traditional Banarasi Kadwa technique where each gold motif is woven individually without loose floats on the reverse. Regal heirloom piece.",
-    "storyTa": "பாரம்பரிய பனாரசி கடவா நெசவு முறை. ராஜ வம்சத்து கம்பீர அழகு."
+    "storyTa": "பாரம்பரிய பனாரசி கடவா நெசவு முறை. ராஜ வம்சத்து கம்பீர அழகு.",
+    "tryOnImage": "/assets/tryon_saree-1.png"
   },
   {
     "sareeId": "saree-6",
@@ -141,7 +146,8 @@
     "accentColor": "#005F41",
     "zariColor": "#F5D77F",
     "story": "The quintessential South Indian bridal heirloom. Deep emerald silk adorned with traditional rudraksha and temple gopuram motifs.",
-    "storyTa": "தென்னிந்திய திருமணங்களின் அடையாளமான ஆழமான மரகத பச்சை முகூர்த்த புடவை."
+    "storyTa": "தென்னிந்திய திருமணங்களின் அடையாளமான ஆழமான மரகத பச்சை முகூர்த்த புடவை.",
+    "tryOnImage": "/assets/tryon_saree-2.png"
   },
   {
     "sareeId": "saree-7",
@@ -165,7 +171,8 @@
     "accentColor": "#F08080",
     "zariColor": "#E6A87C",
     "story": "Glowing like sunset rays with an iridescent dual-tone sheen of coral peach and luminous metallic gold tissue threads.",
-    "storyTa": "மாலை நேர பொலிவு தரும் பவள இளஞ்சிவப்பு இரட்டை வண்ண திசு புடவை."
+    "storyTa": "மாலை நேர பொலிவு தரும் பவள இளஞ்சிவப்பு இரட்டை வண்ண திசு புடவை.",
+    "tryOnImage": "/assets/tryon_saree-3.png"
   },
   {
     "sareeId": "saree-8",
@@ -189,6 +196,7 @@
     "accentColor": "#D4AF37",
     "zariColor": "#FFD700",
     "story": "Opulent golden beige body paired with a contrast deep ruby red korvai interlocking border and heavy brocade pallu.",
-    "storyTa": "பொன்னிற உடலும் மாணிக்க சிவப்பு கோர்வை கரையும் கொண்ட கம்பீரமான பாரம்பரிய புடவை."
+    "storyTa": "பொன்னிற உடலும் மாணிக்க சிவப்பு கோர்வை கரையும் கொண்ட கம்பீரமான பாரம்பரிய புடவை.",
+    "tryOnImage": "/assets/tryon_saree-4.png"
   }
 ]

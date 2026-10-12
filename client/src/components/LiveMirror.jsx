@@ -332,8 +332,8 @@ export const LiveMirror = () => {
     const vWidth = video.videoWidth || 640;
     const vHeight = video.videoHeight || 480;
 
-    // FIT INSIDE BY PADDING (NEVER CROPPING)
-    const scale = Math.min(outWidth / vWidth, outHeight / vHeight);
+    // Fill the portrait mirror canvas completely with real camera and real room (no white borders)
+    const scale = Math.max(outWidth / vWidth, outHeight / vHeight);
     const dw = vWidth * scale;
     const dh = vHeight * scale;
     const dx = (outWidth - dw) / 2;
@@ -394,12 +394,13 @@ export const LiveMirror = () => {
       const formData = new FormData();
       formData.append('person_image', personBlob, 'customer_photo.jpg');
 
-      // PRIORITIZE CLEAN tryOnImage (BACKGROUND REMOVED)
-      const cleanGarmentUrl = selectedSaree?.tryOnImage || selectedSaree?.image || '/assets/saree_kanjivaram_red.jpg';
+      // ALWAYS USE CLEAN TRANSPARENT tryOnImage (BACKGROUND REMOVED)
+      const cleanGarmentUrl = selectedSaree?.tryOnImage 
+        || `/assets/tryon_${selectedSaree?.sareeId || 'saree-1'}.png` 
+        || selectedSaree?.image 
+        || '/assets/tryon_saree-1.png';
       formData.append('garment_url', cleanGarmentUrl);
-      if (selectedSaree?.tryOnImage) {
-        formData.append('try_on_image_url', selectedSaree.tryOnImage);
-      }
+      formData.append('try_on_image_url', cleanGarmentUrl);
 
       const activeDrape = chosenDrapeStyle || drapeStyle || 'Nivi';
       const activeSeed = chosenSeed !== null && chosenSeed !== undefined ? chosenSeed : Math.floor(Math.random() * 999999);
