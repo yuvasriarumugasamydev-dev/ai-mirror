@@ -156,7 +156,7 @@ export class IDMVTONProvider extends BaseTryOnProvider {
         : 'Full length traditional Indian bridal silk saree reaching the ankles, with matching blouse and ornate gold zari border, draped completely to feet',
       is_checked: false, // Turn off upper-only auto-masking so it uses our full-body mask covering the pants!
       is_checked_crop: false, // NO CROPPING: PRESERVES FULL BODY AND HEAD!
-      denoise_steps: denoiseSteps || 25,
+      denoise_steps: denoiseSteps || 35,
       seed: seed || 42
     });
 
@@ -178,7 +178,16 @@ export class IDMVTONProvider extends BaseTryOnProvider {
     try {
       const fetchRes = await fetch(outputUrl);
       const arrayBuf = await fetchRes.arrayBuffer();
-      const base64Str = Buffer.from(arrayBuf).toString('base64');
+
+      // HD Studio Super-Clarity Enhancement:
+      // Sharpens micro-textures, enhances rich silk zari sheen, balances skin tones, and eliminates blurriness
+      const enhancedBuffer = await sharp(Buffer.from(arrayBuf))
+        .sharpen({ sigma: 1.15, m1: 1.8, m2: 0.8 })
+        .modulate({ brightness: 1.04, saturation: 1.15 })
+        .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
+        .toBuffer();
+
+      const base64Str = enhancedBuffer.toString('base64');
       return `data:image/jpeg;base64,${base64Str}`;
     } catch {
       return outputUrl;

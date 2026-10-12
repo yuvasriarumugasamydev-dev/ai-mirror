@@ -212,8 +212,9 @@ export const LiveMirror = () => {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: 'user',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            frameRate: { ideal: 30 }
           },
           audio: false
         });
@@ -313,15 +314,17 @@ export const LiveMirror = () => {
     const video = videoRef.current;
     if (!video) return;
 
-    const outWidth = 768;
-    const outHeight = 1024;
+    const outWidth = 1080;
+    const outHeight = 1440;
     const offscreen = document.createElement('canvas');
     offscreen.width = outWidth;
     offscreen.height = outHeight;
     const ctx = offscreen.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
-    // Fill canvas background with clean neutral studio color (no black bars)
-    ctx.fillStyle = '#FFFFFF';
+    // Fill canvas background
+    ctx.fillStyle = '#1A1A1A';
     ctx.fillRect(0, 0, outWidth, outHeight);
 
     // Mirrored horizontally like real mirror
@@ -343,7 +346,7 @@ export const LiveMirror = () => {
     ctx.drawImage(video, 0, 0, vWidth, vHeight, dx, dy, dw, dh);
     ctx.restore();
 
-    const cleanDataUrl = offscreen.toDataURL('image/jpeg', 0.95);
+    const cleanDataUrl = offscreen.toDataURL('image/jpeg', 0.98);
     setBeforePhotoUrl(cleanDataUrl);
 
     offscreen.toBlob(async (blob) => {
@@ -355,7 +358,7 @@ export const LiveMirror = () => {
       }
       capturedBlobRef.current = blob;
       await submitToTryOnJobAPI(blob, modelPreference);
-    }, 'image/jpeg', 0.95);
+    }, 'image/jpeg', 0.98);
   };
 
   // Clear active polling intervals
