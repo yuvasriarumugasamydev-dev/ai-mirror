@@ -49,12 +49,12 @@ export function AdminLogin({ onBackToMirror }) {
       .then(res => {
         if (res && res.success && Array.isArray(res.data)) {
           const fallbackAssets = [
-            '/assets/saree_kanjivaram_red.jpg',
-            '/assets/saree_peacock_blue.jpg',
-            '/assets/saree_blush_pink.jpg',
-            '/assets/saree_mustard_yellow.jpg',
-            '/assets/kanjivaram_red_gold_1791632062922.jpg',
-            '/assets/peacock_blue_saree_1791632083264.jpg',
+            '/assets/image_20261013_123805.jpg',
+            '/assets/image_20261013_123806.jpg',
+            '/assets/image_20261013_123806_1.jpg',
+            '/assets/image_20261013_123806_2.jpg',
+            '/assets/image_20261013_123812.jpg',
+            '/assets/image_20261013_123813.jpg',
           ];
 
           const formatted = res.data.map((item, idx) => {
