@@ -853,193 +853,143 @@ export function AdminLogin({ onBackToMirror }) {
                     </div>
                   </div>
 
-                  {/* CARD 2: BOUTIQUE LIGHTING & ATMOSPHERE CONTROLLER */}
+                  {/* CARD 2: SAREE FABRIC TRY-ON DISTRIBUTION DONUT CHART */}
                   <div style={styles.tableCard}>
                     <div style={styles.tableCardHeader}>
                       <div>
                         <h3 style={styles.tableCardTitle}>
-                          <i className="fa-solid fa-lightbulb" style={{ color: '#F59E0B', marginRight: '8px' }}></i>
-                          Boutique Lighting & Atmosphere
+                          <i className="fa-solid fa-chart-pie" style={{ color: '#A61C52', marginRight: '8px' }}></i>
+                          Fabric Try-On Distribution
                         </h3>
-                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Live AI Mirror showroom glow & zari enhancer</span>
+                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Real-time customer drape trials by fabric</span>
                       </div>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
-                        Mirror Synced
+                        <i className="fa-solid fa-circle" style={{ fontSize: '7px' }}></i>
+                        148 Drapes Total
                       </span>
                     </div>
 
-                    {/* Lighting Ambience Controller Options */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Donut Chart & Legend Container */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', padding: '10px 0' }}>
                       
-                      {/* PRESET 1: ROYAL GOLD WARMTH */}
-                      <div 
-                        onClick={() => handleLightingChange('gold')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          background: activeLighting === 'gold' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(166, 28, 82, 0.08) 100%)' : '#FAF5EF',
-                          border: activeLighting === 'gold' ? '1.5px solid #C58B37' : '1px solid #F5ECE6',
-                          boxShadow: activeLighting === 'gold' ? '0 4px 14px rgba(197, 139, 55, 0.2)' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '10px',
-                            background: activeLighting === 'gold' ? 'linear-gradient(135deg, #F59E0B, #D97706)' : '#FFFFFF',
-                            color: activeLighting === 'gold' ? '#FFFFFF' : '#D97706',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)'
-                          }}>
-                            <i className="fa-solid fa-sparkles"></i>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              Royal Gold Warmth
-                              {activeLighting === 'gold' && <span style={{ fontSize: '9px', background: '#C58B37', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
-                              Amplifies 24K Zari shimmer for Kanjivaram Bridal silks
-                            </div>
-                          </div>
-                        </div>
+                      {/* 1. LUXURY SVG DONUT CHART */}
+                      <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0 }}>
+                        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                          {/* Segment 1: Pure Silk / Kanjivaram (45% -> 45) */}
+                          <circle
+                            cx="50" cy="50" r="38"
+                            fill="transparent"
+                            stroke="#A61C52"
+                            strokeWidth="16"
+                            strokeDasharray="107.4 238.7"
+                            strokeDashoffset="0"
+                            style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                          />
+                          {/* Segment 2: Banarasi Silk (28% -> 28) */}
+                          <circle
+                            cx="50" cy="50" r="38"
+                            fill="transparent"
+                            stroke="#C58B37"
+                            strokeWidth="16"
+                            strokeDasharray="66.8 238.7"
+                            strokeDashoffset="-107.4"
+                          />
+                          {/* Segment 3: Organza Tissue (17% -> 17) */}
+                          <circle
+                            cx="50" cy="50" r="38"
+                            fill="transparent"
+                            stroke="#E8A598"
+                            strokeWidth="16"
+                            strokeDasharray="40.5 238.7"
+                            strokeDashoffset="-174.2"
+                          />
+                          {/* Segment 4: Handloom Tussar (10% -> 10) */}
+                          <circle
+                            cx="50" cy="50" r="38"
+                            fill="transparent"
+                            stroke="#10B981"
+                            strokeWidth="16"
+                            strokeDasharray="23.9 238.7"
+                            strokeDashoffset="-214.7"
+                          />
+                        </svg>
+
+                        {/* Center Hole Badge with Total */}
                         <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${activeLighting === 'gold' ? '#C58B37' : '#D5C2B6'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          textAlign: 'center',
+                          pointerEvents: 'none'
                         }}>
-                          {activeLighting === 'gold' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#C58B37' }}></div>}
+                          <div style={{ fontSize: '18px', fontWeight: '800', color: '#3D0A1E', lineHeight: '1.1' }}>
+                            148
+                          </div>
+                          <div style={{ fontSize: '10px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Try-Ons
+                          </div>
                         </div>
                       </div>
 
-                      {/* PRESET 2: DAYLIGHT CRISP */}
-                      <div 
-                        onClick={() => handleLightingChange('daylight')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          background: activeLighting === 'daylight' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)' : '#FAF5EF',
-                          border: activeLighting === 'daylight' ? '1.5px solid #2563EB' : '1px solid #F5ECE6',
-                          boxShadow: activeLighting === 'daylight' ? '0 4px 14px rgba(37, 99, 235, 0.18)' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '10px',
-                            background: activeLighting === 'daylight' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : '#FFFFFF',
-                            color: activeLighting === 'daylight' ? '#FFFFFF' : '#2563EB',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
-                          }}>
-                            <i className="fa-solid fa-sun"></i>
+                      {/* 2. FABRIC BREAKDOWN LEGEND */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        
+                        {/* Pure Silk Item */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#A61C52', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Pure Silk / Bridal</span>
                           </div>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              Daylight Crisp
-                              {activeLighting === 'daylight' && <span style={{ fontSize: '9px', background: '#2563EB', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
-                              True-to-life color accuracy for Organza & Pastel shades
-                            </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>67 drapes</span>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#A61C52', background: 'rgba(166,28,82,0.1)', padding: '1px 6px', borderRadius: '6px' }}>45%</span>
                           </div>
                         </div>
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${activeLighting === 'daylight' ? '#2563EB' : '#D5C2B6'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          {activeLighting === 'daylight' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563EB' }}></div>}
-                        </div>
-                      </div>
 
-                      {/* PRESET 3: CANDLELIGHT RECEPTION */}
-                      <div 
-                        onClick={() => handleLightingChange('candlelight')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          background: activeLighting === 'candlelight' ? 'linear-gradient(135deg, rgba(166, 28, 82, 0.12) 0%, rgba(244, 63, 94, 0.08) 100%)' : '#FAF5EF',
-                          border: activeLighting === 'candlelight' ? '1.5px solid #A61C52' : '1px solid #F5ECE6',
-                          boxShadow: activeLighting === 'candlelight' ? '0 4px 14px rgba(166, 28, 82, 0.18)' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '10px',
-                            background: activeLighting === 'candlelight' ? 'linear-gradient(135deg, #A61C52, #E11D48)' : '#FFFFFF',
-                            color: activeLighting === 'candlelight' ? '#FFFFFF' : '#A61C52',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            boxShadow: '0 2px 8px rgba(166, 28, 82, 0.25)'
-                          }}>
-                            <i className="fa-solid fa-moon"></i>
+                        {/* Banarasi Katan Item */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#C58B37', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Banarasi Silk</span>
                           </div>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              Candlelight Reception
-                              {activeLighting === 'candlelight' && <span style={{ fontSize: '9px', background: '#A61C52', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
-                              Soft romantic mood for Banarasi & evening drapes
-                            </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>42 drapes</span>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#C58B37', background: 'rgba(197,139,55,0.15)', padding: '1px 6px', borderRadius: '6px' }}>28%</span>
                           </div>
                         </div>
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${activeLighting === 'candlelight' ? '#A61C52' : '#D5C2B6'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          {activeLighting === 'candlelight' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#A61C52' }}></div>}
-                        </div>
-                      </div>
 
+                        {/* Organza Tissue Item */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E8A598', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Organza Tissue</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>25 drapes</span>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#E8A598', background: 'rgba(232,165,152,0.2)', padding: '1px 6px', borderRadius: '6px' }}>17%</span>
+                          </div>
+                        </div>
+
+                        {/* Handloom Tussar Item */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Tussar & Handloom</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>14 drapes</span>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '1px 6px', borderRadius: '6px' }}>10%</span>
+                          </div>
+                        </div>
+
+                      </div>
                     </div>
 
-                    {/* Quick Hint Footer */}
-                    <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
-                      <span><i className="fa-solid fa-sliders" style={{ color: '#A61C52', marginRight: '5px' }}></i> Click any preset to broadcast to Mirror</span>
-                      <span style={{ fontWeight: '700', color: '#3D0A1E' }}>Instant Sync ⚡</span>
+                    {/* Donut Footer Analytics Summary */}
+                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
+                      <span><i className="fa-solid fa-crown" style={{ color: '#C58B37', marginRight: '6px' }}></i> Top Trending: <b>Kanjivaram Bridal Silk</b></span>
+                      <span style={{ fontWeight: '700', color: '#10B981' }}>+24% vs Last Week</span>
                     </div>
                   </div>
 
