@@ -22,6 +22,23 @@ export function AdminLogin({ onBackToMirror }) {
     }
   });
 
+  // BOUTIQUE LIGHTING & ATMOSPHERE PRESET
+  const [activeLighting, setActiveLighting] = useState(() => {
+    try {
+      return localStorage.getItem('vastra_lighting_preset') || 'gold';
+    } catch (e) {
+      return 'gold';
+    }
+  });
+
+  const handleLightingChange = (presetKey) => {
+    setActiveLighting(presetKey);
+    try {
+      localStorage.setItem('vastra_lighting_preset', presetKey);
+      window.dispatchEvent(new CustomEvent('vastra_lighting_changed', { detail: { preset: presetKey } }));
+    } catch (e) {}
+  };
+
   // PRODUCTS STATE (Stored in DB and localStorage)
   const [products, setProducts] = useState(() => {
     try {
@@ -844,86 +861,193 @@ export function AdminLogin({ onBackToMirror }) {
                     </div>
                   </div>
 
-                  {/* CARD 2: OCCASION & WEDDING SEASON PLANNER */}
+                  {/* CARD 2: BOUTIQUE LIGHTING & ATMOSPHERE CONTROLLER */}
                   <div style={styles.tableCard}>
                     <div style={styles.tableCardHeader}>
                       <div>
                         <h3 style={styles.tableCardTitle}>
-                          <i className="fa-solid fa-gem" style={{ color: '#C58B37', marginRight: '8px' }}></i>
-                          Occasion & Wedding Season Planner
+                          <i className="fa-solid fa-lightbulb" style={{ color: '#F59E0B', marginRight: '8px' }}></i>
+                          Boutique Lighting & Atmosphere
                         </h3>
-                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Upcoming festival demand & drape spotlight</span>
+                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Live AI Mirror showroom glow & zari enhancer</span>
                       </div>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#A61C52', fontWeight: '700', background: 'rgba(166, 28, 82, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
-                        <i className="fa-solid fa-ring"></i>
-                        Muhurtham Active
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                        Mirror Synced
                       </span>
                     </div>
 
-                    {/* Wedding Planner Content */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {/* 1. Season Highlight Banner */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(166, 28, 82, 0.08) 0%, rgba(197, 139, 55, 0.12) 100%)', border: '1px solid rgba(197, 139, 55, 0.25)' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A61C52', fontSize: '16px', boxShadow: '0 2px 8px rgba(166,28,82,0.15)' }}>
-                          <i className="fa-solid fa-calendar-check"></i>
+                    {/* Lighting Ambience Controller Options */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      
+                      {/* PRESET 1: ROYAL GOLD WARMTH */}
+                      <div 
+                        onClick={() => handleLightingChange('gold')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          background: activeLighting === 'gold' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(166, 28, 82, 0.08) 100%)' : '#FAF5EF',
+                          border: activeLighting === 'gold' ? '1.5px solid #C58B37' : '1px solid #F5ECE6',
+                          boxShadow: activeLighting === 'gold' ? '0 4px 14px rgba(197, 139, 55, 0.2)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '10px',
+                            background: activeLighting === 'gold' ? 'linear-gradient(135deg, #F59E0B, #D97706)' : '#FFFFFF',
+                            color: activeLighting === 'gold' ? '#FFFFFF' : '#D97706',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)'
+                          }}>
+                            <i className="fa-solid fa-sparkles"></i>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              Royal Gold Warmth
+                              {activeLighting === 'gold' && <span style={{ fontSize: '9px', background: '#C58B37', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
+                              Amplifies 24K Zari shimmer for Kanjivaram Bridal silks
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E' }}>Wedding Muhurtham Season</div>
-                          <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '1px' }}>Peak drape demand expected in next 15 days</div>
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          border: `2px solid ${activeLighting === 'gold' ? '#C58B37' : '#D5C2B6'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {activeLighting === 'gold' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#C58B37' }}></div>}
                         </div>
-                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '12px', background: '#FFFFFF', color: '#C58B37', border: '1px solid #E8DACF' }}>
-                          Next 15 Days
-                        </span>
                       </div>
 
-                      {/* 2. Trending Demand Categories */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '11px', color: '#7A4E5F', fontWeight: '600' }}>Bridal Pure Silk</span>
-                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: '8px' }}>High Demand</span>
+                      {/* PRESET 2: DAYLIGHT CRISP */}
+                      <div 
+                        onClick={() => handleLightingChange('daylight')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          background: activeLighting === 'daylight' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)' : '#FAF5EF',
+                          border: activeLighting === 'daylight' ? '1.5px solid #2563EB' : '1px solid #F5ECE6',
+                          boxShadow: activeLighting === 'daylight' ? '0 4px 14px rgba(37, 99, 235, 0.18)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '10px',
+                            background: activeLighting === 'daylight' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : '#FFFFFF',
+                            color: activeLighting === 'daylight' ? '#FFFFFF' : '#2563EB',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
+                          }}>
+                            <i className="fa-solid fa-sun"></i>
                           </div>
-                          <div style={{ width: '100%', height: '6px', background: '#E8DACF', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ width: '85%', height: '100%', background: 'linear-gradient(90deg, #A61C52, #C58B37)', borderRadius: '3px' }}></div>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              Daylight Crisp
+                              {activeLighting === 'daylight' && <span style={{ fontSize: '9px', background: '#2563EB', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
+                              True-to-life color accuracy for Organza & Pastel shades
+                            </div>
                           </div>
-                          <span style={{ fontSize: '10px', color: '#7A4E5F', marginTop: '3px', display: 'inline-block' }}>85% trials converted</span>
                         </div>
-
-                        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '11px', color: '#7A4E5F', fontWeight: '600' }}>Pastel Organza</span>
-                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#C58B37', background: 'rgba(197,139,55,0.15)', padding: '2px 6px', borderRadius: '8px' }}>Trending</span>
-                          </div>
-                          <div style={{ width: '100%', height: '6px', background: '#E8DACF', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ width: '68%', height: '100%', background: '#C58B37', borderRadius: '3px' }}></div>
-                          </div>
-                          <span style={{ fontSize: '10px', color: '#7A4E5F', marginTop: '3px', display: 'inline-block' }}>68% trials converted</span>
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          border: `2px solid ${activeLighting === 'daylight' ? '#2563EB' : '#D5C2B6'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {activeLighting === 'daylight' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563EB' }}></div>}
                         </div>
                       </div>
 
-                      {/* 3. AI Mirror Recommendation Tip */}
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px dashed #E5D5C8' }}>
-                        <i className="fa-solid fa-wand-magic-sparkles" style={{ color: '#A61C52', marginTop: '2px', fontSize: '13px' }}></i>
-                        <div style={{ fontSize: '11px', color: '#5A2A3E', lineHeight: '1.4' }}>
-                          <b style={{ color: '#3D0A1E' }}>Boutique Suggestion:</b> Spotlight <b>Red & Gold Banarasi</b> sarees on the Mirror display to boost reception trials.
+                      {/* PRESET 3: CANDLELIGHT RECEPTION */}
+                      <div 
+                        onClick={() => handleLightingChange('candlelight')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          background: activeLighting === 'candlelight' ? 'linear-gradient(135deg, rgba(166, 28, 82, 0.12) 0%, rgba(244, 63, 94, 0.08) 100%)' : '#FAF5EF',
+                          border: activeLighting === 'candlelight' ? '1.5px solid #A61C52' : '1px solid #F5ECE6',
+                          boxShadow: activeLighting === 'candlelight' ? '0 4px 14px rgba(166, 28, 82, 0.18)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '10px',
+                            background: activeLighting === 'candlelight' ? 'linear-gradient(135deg, #A61C52, #E11D48)' : '#FFFFFF',
+                            color: activeLighting === 'candlelight' ? '#FFFFFF' : '#A61C52',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            boxShadow: '0 2px 8px rgba(166, 28, 82, 0.25)'
+                          }}>
+                            <i className="fa-solid fa-moon"></i>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              Candlelight Reception
+                              {activeLighting === 'candlelight' && <span style={{ fontSize: '9px', background: '#A61C52', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
+                              Soft romantic mood for Banarasi & evening drapes
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          border: `2px solid ${activeLighting === 'candlelight' ? '#A61C52' : '#D5C2B6'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {activeLighting === 'candlelight' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#A61C52' }}></div>}
                         </div>
                       </div>
+
                     </div>
 
-                    {/* Quick Action Footer */}
-                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #F5ECE6', display: 'flex', gap: '10px' }}>
-                      <button 
-                        onClick={() => setActiveMenu('products')} 
-                        style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1px solid #E8DACF', background: '#FAF5EF', color: '#3D0A1E', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                      >
-                        <i className="fa-solid fa-list-check" style={{ color: '#A61C52' }}></i> View Bridal Stock
-                      </button>
-                      <button 
-                        onClick={() => setIsAddModalOpen(true)} 
-                        style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(90deg, #A61C52 0%, #C58B37 100%)', color: '#FFFFFF', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                      >
-                        <i className="fa-solid fa-plus"></i> Add Festive Saree
-                      </button>
+                    {/* Quick Hint Footer */}
+                    <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
+                      <span><i className="fa-solid fa-sliders" style={{ color: '#A61C52', marginRight: '5px' }}></i> Click any preset to broadcast to Mirror</span>
+                      <span style={{ fontWeight: '700', color: '#3D0A1E' }}>Instant Sync ⚡</span>
                     </div>
                   </div>
 
