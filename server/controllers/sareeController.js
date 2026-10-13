@@ -242,21 +242,51 @@ export const createSaree = async (req, res) => {
 export const deleteSaree = async (req, res) => {
   try {
     const { id } = req.params;
-    let sarees = getLocalSareesData();
-    sarees = sarees.filter(s => s.sareeId !== id && s.id !== id && s._id !== id);
+    console.log(`[deleteSaree] Request to delete saree with id: "${id}"`);
 
+    // 1. Delete from MongoDB
+    let dbDeletedCount = 0;
     try {
-      fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
-    } catch (e) {
-      console.error('Error saving sarees.json after delete:', e);
+      const deleteConditions = [
+        { sareeId: id },
+        { id: id }
+      ];
+
+      // If id is valid MongoDB ObjectId string
+      if (/^[0-9a-fA-F]{24}$/.test(id)) {
+        deleteConditions.push({ _id: id });
+      }
+
+      const dbRes = await Saree.deleteOne({ $or: deleteConditions });
+      dbDeletedCount = dbRes.deletedCount;
+      console.log(`[deleteSaree] Deleted from MongoDB: ${dbDeletedCount}`);
+    } catch (dbErr) {
+      console.warn('[deleteSaree] MongoDB delete warning:', dbErr.message);
     }
 
+    // 2. Sync server/data/sarees.json
     try {
-      await Saree.deleteOne({ $or: [{ sareeId: id }, { _id: id }] });
+      let sarees = getLocalSareesData();
+      sarees = sarees.filter(s => s.sareeId !== id && s.id !== id && String(s._id) !== id);
+      fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('Error saving server sarees.json after delete:', e);
+    }
+
+    // 3. Also sync client/src/data/sarees.json so fallback never resurrects it
+    try {
+      const clientDataPath = path.resolve(__dirname, '../../client/src/data/sarees.json');
+      if (fs.existsSync(clientDataPath)) {
+        const raw = fs.readFileSync(clientDataPath, 'utf-8');
+        let clientSarees = JSON.parse(raw);
+        clientSarees = clientSarees.filter(s => s.sareeId !== id && s.id !== id && String(s._id) !== id);
+        fs.writeFileSync(clientDataPath, JSON.stringify(clientSarees, null, 2), 'utf-8');
+      }
     } catch (e) {}
 
-    return res.json({ success: true, message: 'Saree deleted successfully' });
+    return res.json({ success: true, message: 'Saree deleted successfully', dbDeletedCount });
   } catch (error) {
+    console.error('[deleteSaree] Fatal error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
