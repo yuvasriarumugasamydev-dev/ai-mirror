@@ -49,7 +49,15 @@ export const CompareBoard = () => {
 
             <div className="slot-preview-card">
               <div className="slot-image-wrapper">
-                <img src={sareeA.image} alt={sareeA.name} />
+                <img 
+                  src={sareeA.image} 
+                  alt={sareeA.name}
+                  onError={(e) => {
+                    console.error(`Failed to load image: ${sareeA.image}`);
+                    e.target.style.backgroundColor = '#f0f0f0';
+                    e.target.alt = `Image not available for ${sareeA.name}`;
+                  }}
+                />
               </div>
               <div className="slot-specs">
                 <div className="compare-spec-item">
@@ -108,7 +116,15 @@ export const CompareBoard = () => {
 
             <div className="slot-preview-card">
               <div className="slot-image-wrapper">
-                <img src={sareeB.image} alt={sareeB.name} />
+                <img 
+                  src={sareeB.image} 
+                  alt={sareeB.name}
+                  onError={(e) => {
+                    console.error(`Failed to load image: ${sareeB.image}`);
+                    e.target.style.backgroundColor = '#f0f0f0';
+                    e.target.alt = `Image not available for ${sareeB.name}`;
+                  }}
+                />
               </div>
               <div className="slot-specs">
                 <div className="compare-spec-item">

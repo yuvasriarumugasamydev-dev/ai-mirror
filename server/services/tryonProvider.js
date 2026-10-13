@@ -323,8 +323,73 @@ export class FalAiTryOnProvider extends BaseTryOnProvider {
 }
 
 /**
- * Segmind Face Swap Provider (Model Body + Customer Face)
+ * LCInd Face API Provider (Model Body + Customer Face)
  * Fast, accurate AI face swap swapping customer face onto model saree body
+ * NEW API: https://faceapi.lcind.space/
+ */
+export class LCIndFaceSwapProvider extends BaseTryOnProvider {
+  constructor() {
+    super();
+  }
+
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, signal }) {
+    if (signal?.aborted) throw new Error('Job was cancelled');
+
+    console.log(`[LCIndFaceSwapProvider]: Calling LCInd Face API for '${garmentName}'...`);
+
+    // Create FormData for multipart/form-data upload
+    const FormData = (await import('form-data')).default;
+    const formData = new FormData();
+    
+    // Append images as file buffers
+    formData.append('source_img', personBuffer, {
+      filename: 'customer_face.jpg',
+      contentType: 'image/jpeg'
+    });
+    formData.append('target_img', garmentBuffer, {
+      filename: 'model_saree.jpg',
+      contentType: 'image/jpeg'
+    });
+
+    const response = await fetch('https://faceapi.lcind.space/swap-face', {
+      method: 'POST',
+      body: formData,
+      headers: formData.getHeaders(),
+      signal
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`LCInd Face API error (${response.status}): ${errText}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    
+    // If response is directly an image
+    if (contentType.includes('image/')) {
+      const arrayBuffer = await response.arrayBuffer();
+      return `data:image/jpeg;base64,${Buffer.from(arrayBuffer).toString('base64')}`;
+    }
+
+    // If response is JSON with image URL or base64
+    const json = await response.json();
+    if (json?.image) {
+      return json.image.startsWith('data:') ? json.image : `data:image/jpeg;base64,${json.image}`;
+    } else if (json?.image_url || json?.url) {
+      const imageUrl = json.image_url || json.url;
+      // Fetch the image from URL and convert to base64
+      const imgRes = await fetch(imageUrl);
+      const imgBuffer = await imgRes.arrayBuffer();
+      return `data:image/jpeg;base64,${Buffer.from(imgBuffer).toString('base64')}`;
+    }
+
+    throw new Error('LCInd Face API did not return a valid swapped image');
+  }
+}
+
+/**
+ * Segmind Face Swap Provider (Model Body + Customer Face) - DEPRECATED
+ * Keeping as backup fallback
  */
 export class SegmindFaceSwapProvider extends BaseTryOnProvider {
   constructor() {
@@ -435,14 +500,16 @@ export class LocalDrapeProvider extends BaseTryOnProvider {
 
 /**
  * Resilient Multi-Model Manager
- * Routes to Fal.ai (Commercial Production) if FAL_KEY is present,
- * or cascades to Prompt-Guided Image Edit (Qwen / FLUX Kontext),
+ * Routes to NEW LCInd Face API (Primary Face Swap),
+ * or cascades to Fal.ai (Commercial Production) if FAL_KEY is present,
+ * Prompt-Guided Image Edit (Qwen / FLUX Kontext),
  * CatVTON (full-length overall), IDM-VTON, and Local Neural Drape Engine.
  */
 export class ResilientTryOnManager {
   constructor() {
     this.localDrape = new LocalDrapeProvider();
-    this.segmindFaceSwap = new SegmindFaceSwapProvider();
+    this.lcindFaceSwap = new LCIndFaceSwapProvider(); // NEW PRIMARY FACE SWAP API
+    this.segmindFaceSwap = new SegmindFaceSwapProvider(); // Backup fallback
     this.falAi = new FalAiTryOnProvider();
     this.imageEditPrimary = new PromptGuidedEditProvider('Qwen/Qwen-Image-Edit');
     this.imageEditBackup = new PromptGuidedEditProvider('multimodalart/FLUX.1-Kontext');
@@ -520,11 +587,17 @@ export class ResilientTryOnManager {
       // 100% Local Neural Drape Engine execution (Instant, offline, zero API quota)
       plan.push({ name: 'Local Neural Drape Engine', provider: this.localDrape });
     } else {
-      // Priority 1: Segmind Face Swap (Model Body + Customer Face)
-      if (modelPreference === 'segmind' || modelPreference === 'faceswap' || (hasSegmindKey && (modelPreference === 'auto' || isSaree || isGown))) {
-        plan.push({ name: 'Segmind Face Swap (Customer Face + Saree Model)', provider: this.segmindFaceSwap });
+      // Priority 1: LCInd Face API (NEW - Primary Face Swap API)
+      if (modelPreference === 'faceswap' || modelPreference === 'lcind' || (modelPreference === 'auto' && (isSaree || isGown))) {
+        plan.push({ name: 'LCInd Face API (Customer Face + Saree Model)', provider: this.lcindFaceSwap });
       }
 
+      // Priority 2: Segmind Face Swap (Backup if LCInd fails)
+      if (modelPreference === 'segmind' || (hasSegmindKey && (modelPreference === 'auto' || isSaree || isGown))) {
+        plan.push({ name: 'Segmind Face Swap (Backup)', provider: this.segmindFaceSwap });
+      }
+
+      // Priority 3: Fal.ai Production
       if (modelPreference === 'fal_ai' || (hasFalKey && (modelPreference === 'auto' || isSaree || isGown))) {
         plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
       }
