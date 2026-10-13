@@ -33,7 +33,7 @@ export const MirrorProvider = ({ children }) => {
   // Load from Express backend on mount
   useEffect(() => {
     fetchSarees('all').then(data => {
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setSarees(data);
       }
     });
@@ -43,7 +43,7 @@ export const MirrorProvider = ({ children }) => {
 
   const t = (key) => TRANSLATIONS[lang]?.[key] || key;
 
-  const selectedSaree = sarees.find(s => (s.sareeId === activeSareeId || s.id === activeSareeId)) || sarees[0];
+  const selectedSaree = sarees.find(s => (s.sareeId === activeSareeId || s.id === activeSareeId)) || sarees[0] || null;
   const activeSaree = selectedSaree; // Alias for backward compatibility
 
   const setSelectedSaree = (sareeOrId) => {

@@ -97,6 +97,7 @@ router.get('/:jobId', (req, res) => {
     jobId: job.id,
     status: job.status,
     garment_name: job.garmentName,
+    provider: job.provider || null,
     result_image_url: job.result_image_url,
     error: job.error,
     elapsedMs: job.elapsedMs

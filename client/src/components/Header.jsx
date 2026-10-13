@@ -57,7 +57,6 @@ export const Header = () => {
         >
           <i className="fa-solid fa-vest-patches"></i>
           <span>{t('nav_collection')}</span>
-          <span className="badge-count">{sarees.length}</span>
         </button>
         <button
           className={`nav-tab-btn ${currentTab === 'compare' ? 'active' : ''}`}
