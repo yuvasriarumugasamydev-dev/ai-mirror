@@ -34,9 +34,9 @@ export const Header = () => {
       <div className="header-left">
         <div
           className="header-brand"
-          onClick={() => handleTab('admin')}
+          onClick={() => handleTab('mirror')}
           style={{ cursor: 'pointer' }}
-          title="Click to open Admin Login"
+          title="Vastra Boutique Smart Mirror"
         >
           <div className="logo-mark" style={{ cursor: 'pointer' }}>
             <i className="fa-solid fa-gem"></i>

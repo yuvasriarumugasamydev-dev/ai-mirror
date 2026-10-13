@@ -14,6 +14,33 @@ import { AdminLogin } from './admin/adminlogin';
 
 export function App() {
   const { isWelcomeActive, currentTab, setCurrentTab, lang, t, isSizeScanOpen, setIsSizeScanOpen } = useMirror();
+  const [isAdminRoute, setIsAdminRoute] = React.useState(() => {
+    return window.location.pathname.toLowerCase().startsWith('/admin') || window.location.hash.toLowerCase().startsWith('#/admin') || window.location.hash.toLowerCase() === '#admin';
+  });
+
+  React.useEffect(() => {
+    const checkPath = () => {
+      const match = window.location.pathname.toLowerCase().startsWith('/admin') || window.location.hash.toLowerCase().startsWith('#/admin') || window.location.hash.toLowerCase() === '#admin';
+      setIsAdminRoute(match);
+    };
+
+    window.addEventListener('popstate', checkPath);
+    window.addEventListener('hashchange', checkPath);
+    return () => {
+      window.removeEventListener('popstate', checkPath);
+      window.removeEventListener('hashchange', checkPath);
+    };
+  }, []);
+
+  const handleBackToMirror = () => {
+    if (window.history.pushState) {
+      window.history.pushState({}, '', '/');
+    } else {
+      window.location.hash = '';
+    }
+    setIsAdminRoute(false);
+    setCurrentTab('mirror');
+  };
 
   return (
     <div className="ai-mirror-app" data-lang={lang}>
@@ -21,9 +48,9 @@ export function App() {
       <WelcomeScreen />
 
       {/* 2. MAIN APP SHELL */}
-      {currentTab === 'admin' ? (
+      {isAdminRoute ? (
         <div style={{ width: '100vw', minHeight: '100vh', backgroundColor: '#FAF5EF', position: 'relative', zIndex: 10 }}>
-          <AdminLogin onBackToMirror={() => setCurrentTab('mirror')} />
+          <AdminLogin onBackToMirror={handleBackToMirror} />
         </div>
       ) : (
         <div className={`app-shell ${isWelcomeActive ? 'blurred' : ''}`}>

@@ -38,18 +38,37 @@ export function AdminLogin({ onBackToMirror }) {
       .then(r => r.json())
       .then(res => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const formatted = res.data.map((item, idx) => ({
-            id: item.sareeId || item._id || `p-${idx}`,
-            name: item.name || 'Handcrafted Saree',
-            fabric: item.fabric || 'Pure Silk',
-            colorName: item.fabric || 'Silk Hue',
-            colorCode: item.accentColor || '#A61C52',
-            price: item.priceFormatted || (typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : '₹15,000'),
-            rawPrice: item.price || 15000,
-            image: item.image || '',
-            status: 'In Showroom',
-            drapes: `${item.drapes || 0} Drapes`
-          }));
+          const fallbackAssets = [
+            '/assets/saree_kanjivaram_red.jpg',
+            '/assets/saree_peacock_blue.jpg',
+            '/assets/saree_blush_pink.jpg',
+            '/assets/saree_mustard_yellow.jpg',
+            '/assets/kanjivaram_red_gold_1791632062922.jpg',
+            '/assets/peacock_blue_saree_1791632083264.jpg',
+          ];
+
+          const formatted = res.data.map((item, idx) => {
+            let finalImage = item.image;
+            // Clean out invalid / empty dummy strings
+            if (!finalImage || finalImage.includes('undefined') || finalImage.includes('null')) {
+              finalImage = fallbackAssets[idx % fallbackAssets.length];
+            }
+            const sId = item.sareeId || item.id || (item._id ? String(item._id) : `p-${idx}`);
+            return {
+              id: sId,
+              sareeId: item.sareeId || sId,
+              mongoId: item._id ? String(item._id) : '',
+              name: item.name || 'Handcrafted Saree',
+              fabric: item.fabric || 'Pure Silk',
+              colorName: item.fabric || 'Silk Hue',
+              colorCode: item.accentColor || '#A61C52',
+              price: item.priceFormatted || (typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : '₹15,000'),
+              rawPrice: item.price || 15000,
+              image: finalImage,
+              status: 'In Showroom',
+              drapes: `${item.drapes || 0} Drapes`
+            };
+          });
           setProducts(formatted);
           try {
             localStorage.setItem('vastra_admin_products', JSON.stringify(formatted));
@@ -188,7 +207,11 @@ export function AdminLogin({ onBackToMirror }) {
     setActiveMenu('dashboard');
     try {
       localStorage.removeItem('vastra_admin_auth');
+      localStorage.setItem('vastra_active_tab', 'mirror');
     } catch (e) {}
+    if (onBackToMirror) {
+      onBackToMirror();
+    }
   };
 
   // ADD PRODUCT HANDLER WITH DB & STORAGE PERSISTENCE
@@ -237,17 +260,29 @@ export function AdminLogin({ onBackToMirror }) {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteConfirmItem) return;
-    const id = deleteConfirmItem.id;
-    const updated = products.filter(p => p.id !== id);
+    const targetId = deleteConfirmItem.sareeId || deleteConfirmItem.id || deleteConfirmItem.mongoId;
+    const itemNameToDelete = deleteConfirmItem.name;
+
+    // Immediately remove from local state
+    const updated = products.filter(p => p.id !== deleteConfirmItem.id && p.sareeId !== targetId);
     setProducts(updated);
+
     try {
       localStorage.setItem('vastra_admin_products', JSON.stringify(updated));
       localStorage.setItem('vastra_saree_sync', Date.now().toString());
-      fetch(`/api/sarees/${id}`, { method: 'DELETE' }).catch(() => {});
-    } catch (e) {}
-    setToastMessage(`"${deleteConfirmItem.name}" deleted from catalog! 🗑️`);
+
+      // Await backend deletion
+      const res = await fetch(`/api/sarees/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
+      if (!res.ok && deleteConfirmItem.mongoId && deleteConfirmItem.mongoId !== targetId) {
+        await fetch(`/api/sarees/${encodeURIComponent(deleteConfirmItem.mongoId)}`, { method: 'DELETE' });
+      }
+    } catch (e) {
+      console.warn('Delete API call failed:', e);
+    }
+
+    setToastMessage(`"${itemNameToDelete}" deleted permanently from database! 🗑️`);
     setDeleteConfirmItem(null);
     setTimeout(() => setToastMessage(''), 2500);
   };
@@ -1121,7 +1156,7 @@ export function AdminLogin({ onBackToMirror }) {
                           <tr key={item.id} style={styles.tableRow}>
                             <td style={styles.td}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                {item.image ? (
+                                {item.image && !item.image.includes('undefined') && !item.image.includes('null') ? (
                                   <div
                                     onClick={() => setZoomedImage(item)}
                                     title="Click to zoom saree photo"
@@ -1136,6 +1171,13 @@ export function AdminLogin({ onBackToMirror }) {
                                     <img
                                       src={item.image}
                                       alt={item.name}
+                                      onError={(e) => {
+                                        // Hide broken image gracefully
+                                        e.currentTarget.style.display = 'none';
+                                        if (e.currentTarget.parentElement) {
+                                          e.currentTarget.parentElement.style.display = 'none';
+                                        }
+                                      }}
                                       style={{
                                         width: '42px',
                                         height: '52px',
@@ -1160,11 +1202,7 @@ export function AdminLogin({ onBackToMirror }) {
                                       <i className="fa-solid fa-magnifying-glass-plus"></i>
                                     </div>
                                   </div>
-                                ) : (
-                                  <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: item.colorCode, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                                    <i className="fa-solid fa-vest-patches"></i>
-                                  </div>
-                                )}
+                                ) : null}
                                 <b>{item.name}</b>
                               </div>
                             </td>
