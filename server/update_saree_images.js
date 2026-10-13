@@ -1,40 +1,188 @@
 import mongoose from 'mongoose';
+import fs from 'fs';
 
 const URI = 'mongodb+srv://lifechangersind:alpha1421@alphaproduct.kovyp.mongodb.net/Ai-Mirror?appName=AlphaProduct';
 
-async function updateImages() {
+const allNineSarees = [
+  {
+    sareeId: 'saree-1',
+    name: 'Kanjivaram Bridal Crimson Red',
+    nameTa: 'காஞ்சிபுரம் மணப்பெண் செம்பட்டு புடவை',
+    category: 'kanjivaram',
+    isBridal: true,
+    price: 42500,
+    priceFormatted: '₹42,500',
+    origin: 'Kanchipuram, Tamil Nadu',
+    fabric: 'Pure Mulberry Silk (3-Ply)',
+    rating: 4.9,
+    reviewsCount: 128,
+    image: '/assets/image_20261013_123805.jpg',
+    tryOnImage: '/assets/image_20261013_123805.jpg',
+    accentColor: '#800000',
+    zariColor: '#FFD700',
+    story: 'Handcrafted Kanchi bridal masterpiece.'
+  },
+  {
+    sareeId: 'saree-2',
+    name: 'Royal Peacock Blue & Emerald Kanjivaram',
+    nameTa: 'மயில் நீலம் & மரகத பச்சை பட்டுப் புடவை',
+    category: 'kanjivaram',
+    isBridal: true,
+    price: 38900,
+    priceFormatted: '₹38,900',
+    origin: 'Kanchipuram, Tamil Nadu',
+    fabric: 'Pure Handloom Silk (Silk Mark)',
+    rating: 4.8,
+    reviewsCount: 94,
+    image: '/assets/image_20261013_123806.jpg',
+    tryOnImage: '/assets/image_20261013_123806.jpg',
+    accentColor: '#1E5EFF',
+    zariColor: '#E6C657',
+    story: 'Regal royal blue body with rich emerald border.'
+  },
+  {
+    sareeId: 'saree-3',
+    name: 'Blush Pink Organza Hand-Embroidered',
+    nameTa: 'ரோஜா இளஞ்சிவப்பு ஆர்கன்சா வடிவமைப்பாளர் புடவை',
+    category: 'organza',
+    isBridal: false,
+    price: 24800,
+    priceFormatted: '₹24,800',
+    origin: 'Varanasi Studio Atelier',
+    fabric: 'Featherlight Sheer Silk Organza',
+    rating: 4.7,
+    reviewsCount: 62,
+    image: '/assets/image_20261013_123806_1.jpg',
+    tryOnImage: '/assets/image_20261013_123806_1.jpg',
+    accentColor: '#E8A598',
+    zariColor: '#F3E5AB',
+    story: 'Featherlight organza with floral vine embroidery.'
+  },
+  {
+    sareeId: 'saree-4',
+    name: 'Mustard Festive Silk with Rani Pink Border',
+    nameTa: 'மஞ்சள் & ராணி பிங்க் கோவில் பார்டர் பட்டு',
+    category: 'kanjivaram',
+    isBridal: false,
+    price: 34200,
+    priceFormatted: '₹34,200',
+    origin: 'Arani Heritage Cluster, Tamil Nadu',
+    fabric: 'Pure Heavy Tussar & Mulberry Silk Blend',
+    rating: 4.9,
+    reviewsCount: 88,
+    image: '/assets/image_20261013_123806_2.jpg',
+    tryOnImage: '/assets/image_20261013_123806_2.jpg',
+    accentColor: '#DDA01B',
+    zariColor: '#E5A93C',
+    story: 'Auspicious turmeric yellow with rani pink border.'
+  },
+  {
+    sareeId: 'saree-5',
+    name: 'Royal Purple Banarasi Katan Silk',
+    nameTa: 'ராயல் பர்பிள் பனாரசி கட்டான் பட்டு',
+    category: 'banarasi',
+    isBridal: true,
+    price: 46000,
+    priceFormatted: '₹46,000',
+    origin: 'Varanasi, Uttar Pradesh',
+    fabric: 'Pure Katan Handspun Silk',
+    rating: 5.0,
+    reviewsCount: 112,
+    image: '/assets/image_20261013_123812.jpg',
+    tryOnImage: '/assets/image_20261013_123812.jpg',
+    accentColor: '#581845',
+    zariColor: '#FFD700',
+    story: 'Traditional Banarasi Kadwa technique weave.'
+  },
+  {
+    sareeId: 'saree-6',
+    name: 'Emerald Green Vivaha Muhurtham Silk',
+    nameTa: 'மரகத பச்சை விவாக முகூர்த்த பட்டு',
+    category: 'bridal',
+    isBridal: true,
+    price: 51200,
+    priceFormatted: '₹51,200',
+    origin: 'Kanchipuram Master Loom',
+    fabric: 'Super Heavy Weight Pure Silk',
+    rating: 4.9,
+    reviewsCount: 145,
+    image: '/assets/image_20261013_123813.jpg',
+    tryOnImage: '/assets/image_20261013_123813.jpg',
+    accentColor: '#005F41',
+    zariColor: '#F5D77F',
+    story: 'Quintessential South Indian bridal heirloom.'
+  },
+  {
+    sareeId: 'saree-7',
+    name: 'Sunset Coral Peach Tissue Saree',
+    nameTa: 'சூரிய அஸ்தமன பவள திசு புடவை',
+    category: 'organza',
+    isBridal: false,
+    price: 29500,
+    priceFormatted: '₹29,500',
+    origin: 'Dharmavaram, Andhra Pradesh',
+    fabric: 'Metallic Silk Tissue & Organza',
+    rating: 4.8,
+    reviewsCount: 51,
+    image: '/assets/image_20261013_123814.jpg',
+    tryOnImage: '/assets/image_20261013_123814.jpg',
+    accentColor: '#F08080',
+    zariColor: '#E6A87C',
+    story: 'Dual-tone sheen of coral peach & gold tissue.'
+  },
+  {
+    sareeId: 'saree-8',
+    name: 'Imperial Golden Beige Korvai Pattu',
+    nameTa: 'பொன்னிற கோர்வை பட்டுப் புடவை',
+    category: 'banarasi',
+    isBridal: true,
+    price: 48000,
+    priceFormatted: '₹48,000',
+    origin: 'Kanchipuram, Tamil Nadu',
+    fabric: 'Pure Mulberry Silk 4-Ply',
+    rating: 4.9,
+    reviewsCount: 77,
+    image: '/assets/image_20261013_123814_1.jpg',
+    tryOnImage: '/assets/image_20261013_123814_1.jpg',
+    accentColor: '#D4AF37',
+    zariColor: '#FFD700',
+    story: 'Opulent golden beige body with ruby red border.'
+  },
+  {
+    sareeId: 'saree-9',
+    name: 'Shimmering Champagne Gold Tissue Brocade',
+    nameTa: 'ஷாம்பெயின் தங்க திசு புடவை',
+    category: 'banarasi',
+    isBridal: true,
+    price: 53500,
+    priceFormatted: '₹53,500',
+    origin: 'Varanasi Studio Heritage',
+    fabric: 'Pure Luminous Gold Tissue',
+    rating: 5.0,
+    reviewsCount: 96,
+    image: '/assets/image_20261013_123816.jpg',
+    tryOnImage: '/assets/image_20261013_123816.jpg',
+    accentColor: '#CFB53B',
+    zariColor: '#FFD700',
+    story: 'Radiant champagne gold drape for lavish wedding receptions.'
+  }
+];
+
+async function updateAllNine() {
   const c = await mongoose.connect(URI);
   const col = c.connection.db.collection('sarees');
 
-  // Exact mappings to real assets in project
-  const updates = [
-    { id: 'saree-3', img: '/assets/image_20261013_123805.jpg' },
-    { id: 'saree-4', img: '/assets/image_20261013_123806.jpg' },
-    { id: 'saree-5', img: '/assets/image_20261013_123806_1.jpg' },
-    { id: 'saree-6', img: '/assets/image_20261013_123806_2.jpg' },
-    { id: 'saree-7', img: '/assets/image_20261013_123812.jpg' },
-    { id: 'saree-8', img: '/assets/image_20261013_123813.jpg' }
-  ];
+  // Clear collection and insert all 9 exact sarees
+  await col.deleteMany({});
+  await col.insertMany(allNineSarees);
 
-  for (const item of updates) {
-    const res = await col.updateOne(
-      { sareeId: item.id },
-      { $set: { image: item.img, tryOnImage: item.img } }
-    );
-    console.log(`Updated ${item.id} -> ${item.img}:`, res.modifiedCount);
-  }
+  console.log(`Successfully added all ${allNineSarees.length} sarees to MongoDB!`);
 
-  // Also remove any dummy items that are not in the official catalog
-  const deleteRes = await col.deleteMany({
-    sareeId: { $regex: '^p-' }
-  });
-  console.log('Removed dummy/scratch sarees:', deleteRes.deletedCount);
-
-  const finalSarees = await col.find().project({ sareeId: 1, name: 1, image: 1 }).toArray();
-  console.log('Final Sarees in DB:');
-  finalSarees.forEach((s, idx) => console.log(`${idx + 1}. [${s.sareeId}] ${s.name} => ${s.image}`));
+  // Sync to client & server JSON files too
+  fs.writeFileSync('../client/src/data/sarees.json', JSON.stringify(allNineSarees, null, 2));
+  fs.writeFileSync('./data/sarees.json', JSON.stringify(allNineSarees, null, 2));
 
   await mongoose.disconnect();
 }
 
-updateImages().catch(console.error);
+updateAllNine().catch(console.error);
