@@ -1,0 +1,22 @@
+{
+  "circumferenceRatios": {
+    "bust": 3.02,
+    "waist": 2.88,
+    "hip": 2.98,
+    "shoulderDirect": 1.05
+  },
+  "depthEstimates": {
+    "defaultDepthRatio": 0.72,
+    "sidePhotoWeight": 0.45
+  },
+  "calibration": {
+    "headToNoseRatio": 0.12,
+    "minPoseFrames": 15,
+    "maxPoseFrames": 25,
+    "scanDurationMs": 2000
+  },
+  "confidenceThresholds": {
+    "highVisibility": 0.85,
+    "mediumVisibility": 0.65
+  }
+}

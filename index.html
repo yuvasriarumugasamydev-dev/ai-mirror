@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VASTRA AI Mirror | Smart Saree Boutique Kiosk</title>
+  <meta name="description" content="Next-generation AI Smart Mirror for luxury saree try-on and boutique styling. Explore Kanjivaram, Banarasi, and Organza collections with real-time AR draping.">
+  
+  <!-- Google Fonts: Poppins & Noto Sans Tamil -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons for clean boutique iconography -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-lang="en">
+  <!-- Audio Context Elements (Web Audio synthesized for kiosk feedback) -->
+
+  <!-- ==============================================
+       1. WELCOME SCREEN / IDLE ATTRACT SCREEN
+       Blue Gradient (#1E5EFF to #0B2A5B)
+       Large Orange "Touch to Start" Button
+       ============================================== -->
+  <section id="welcome-screen" class="welcome-screen active" aria-label="Welcome Attract Screen">
+    <div class="welcome-bg-glow"></div>
+    <div class="welcome-ambient-mesh">
+      <div class="floating-pattern pattern-1"></div>
+      <div class="floating-pattern pattern-2"></div>
+      <div class="floating-pattern pattern-3"></div>
+    </div>
+
+    <header class="welcome-topbar">
+      <div class="brand-badge">
+        <span class="brand-sparkle"><i class="fa-solid fa-gem"></i></span>
+        <span class="brand-subtitle">HAUTE COUTURE SMART BOUTIQUE</span>
+      </div>
+    </header>
+
+    <div class="welcome-center-content">
+      <div class="brand-logo-emblem">
+        <div class="emblem-ring">
+          <i class="fa-solid fa-wand-magic-sparkles emblem-icon"></i>
+        </div>
+      </div>
+      
+      <h1 class="welcome-title">
+        <span class="brand-name">VASTRA</span>
+        <span class="brand-mirror-tag">AI SMART MIRROR</span>
+      </h1>
+      <p class="welcome-subtitle" data-i18n="welcome_subtitle">
+        Step into luxury. Experience real-time photorealistic saree drape & boutique styling.
+      </p>
+
+      <!-- Large Orange "Touch to Start" button as requested -->
+      <button id="btn-touch-to-start" class="btn-touch-to-start" onclick="enterApp()">
+        <span class="btn-ripple"></span>
+        <span class="btn-icon"><i class="fa-solid fa-fingerprint"></i></span>
+        <span class="btn-text" data-i18n="touch_to_start">Touch to Start</span>
+        <span class="btn-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+      </button>
+
+      <div class="welcome-features-strip">
+        <div class="feature-item">
+          <i class="fa-solid fa-camera-rotate"></i>
+          <span data-i18n="feature_ar">Instant AR Drape</span>
+        </div>
+        <div class="feature-divider">•</div>
+        <div class="feature-item">
+          <i class="fa-solid fa-layer-group"></i>
+          <span data-i18n="feature_fabrics">Pure Kanjivaram & Silk</span>
+        </div>
+        <div class="feature-divider">•</div>
+        <div class="feature-item">
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="feature_qr">Scan & Save to Mobile</span>
+        </div>
+      </div>
+    </div>
+
+    <footer class="welcome-footer">
+      <div class="kiosk-status">
+        <span class="status-dot"></span>
+        <span data-i18n="mirror_ready">AI Mirror 4K HD Ready • Touch Screen Activated</span>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ==============================================
+       2. MAIN APP SHELL (60% White, 30% Blue, 10% Orange)
+       ============================================== -->
+  <div id="app-shell" class="app-shell">
+    
+    <!-- Top Navigation Bar (Luminous White & Royal Blue) -->
+    <header class="main-header" id="main-header">
+      <div class="header-left">
+        <div class="header-brand" onclick="goToHome()">
+          <div class="logo-mark">
+            <i class="fa-solid fa-gem"></i>
+          </div>
+          <div class="brand-titles">
+            <span class="brand-header-title">VASTRA</span>
+            <span class="brand-header-sub" data-i18n="boutique_mirror">AI MIRROR BOUTIQUE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="header-nav" id="header-nav" aria-label="Main Navigation">
+        <button id="nav-tab-mirror" class="nav-tab-btn active" onclick="switchTab('mirror')">
+          <i class="fa-solid fa-camera-viewfinder"></i>
+          <span data-i18n="nav_mirror">Live Try-On Mirror</span>
+        </button>
+        <button id="nav-tab-catalog" class="nav-tab-btn" onclick="switchTab('catalog')">
+          <i class="fa-solid fa-vest-patches"></i>
+          <span data-i18n="nav_collection">Saree Collection</span>
+          <span class="badge-count" id="catalog-count-badge">8</span>
+        </button>
+        <button id="nav-tab-compare" class="nav-tab-btn" onclick="switchTab('compare')">
+          <i class="fa-solid fa-columns"></i>
+          <span data-i18n="nav_compare">Compare Looks</span>
+        </button>
+        <button id="nav-tab-gallery" class="nav-tab-btn" onclick="switchTab('gallery')">
+          <i class="fa-solid fa-images"></i>
+          <span data-i18n="nav_saved">Saved Snaps</span>
+          <span class="badge-count" id="saved-snaps-count">0</span>
+        </button>
+      </nav>
+
+      <!-- Header Right Utilities -->
+      <div class="header-right">
+        <!-- Assistant Bell -->
+        <button id="btn-call-stylist" class="btn-utility" onclick="callStylist()" title="Call Boutique Stylist">
+          <i class="fa-solid fa-bell-concierge"></i>
+          <span class="utility-label" data-i18n="call_stylist">Staff Assist</span>
+        </button>
+
+        <!-- Exit to Idle / Reset -->
+        <button id="btn-return-idle" class="btn-utility btn-ghost" onclick="returnToWelcome()" title="Return to Welcome Screen">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Content Area -->
+    <main class="main-content" id="main-content">
+
+      <!-- ==========================================
+           TAB 1: LIVE TRY-ON MIRROR
+           ========================================== -->
+      <section id="tab-mirror" class="tab-panel active" aria-label="AI Mirror Try-On">
+        <div class="mirror-workspace-grid">
+          
+          <!-- LEFT / CENTER: MIRROR VIEWPORT -->
+          <div class="mirror-viewport-container">
+            <div class="mirror-frame" id="mirror-frame">
+              
+              <!-- Video Camera Feed -->
+              <video id="webcam-feed" autoplay playsinline muted class="camera-stream"></video>
+
+              <!-- Studio Mannequin / Fallback Realistic Model -->
+              <img id="model-fallback-image" src="assets/model_mirror.jpg" alt="Boutique Trial Model" class="model-stream-img">
+
+              <!-- AR Drape Canvas Layer -->
+              <canvas id="drape-canvas" class="drape-canvas-layer"></canvas>
+
+              <!-- Live Saree Drape Texture Overlay -->
+              <div id="saree-texture-overlay" class="saree-texture-overlay">
+                <div class="drape-pleats-shadow"></div>
+                <div class="drape-pallu-flow" id="drape-pallu-flow"></div>
+                <div class="drape-border-accent" id="drape-border-accent"></div>
+                <div class="blouse-accent" id="blouse-accent"></div>
+              </div>
+
+              <!-- Mirror Lighting Ambiance Tint -->
+              <div id="lighting-filter-tint" class="lighting-filter-tint"></div>
+
+              <!-- Mirror Live Status Bar -->
+              <div class="mirror-live-badge">
+                <span class="live-dot pulse"></span>
+                <span id="camera-source-label">STUDIO MODEL MODE</span>
+                <button class="toggle-source-btn" onclick="toggleCameraSource()" id="btn-toggle-camera">
+                  <i class="fa-solid fa-camera"></i> <span data-i18n="switch_camera">Switch to Live Webcam</span>
+                </button>
+              </div>
+
+              <!-- Saree Currently Draped Floating Card -->
+              <div class="current-draped-card" id="current-draped-card">
+                <div class="draped-saree-thumb">
+                  <img id="draped-thumb-img" src="assets/saree_kanjivaram_red.jpg" alt="Selected Saree">
+                </div>
+                <div class="draped-saree-info">
+                  <span class="draped-tag" data-i18n="currently_wearing">CURRENTLY DRAPED</span>
+                  <h3 class="draped-title" id="draped-title">Kanjivaram Bridal Crimson Red</h3>
+                  <span class="draped-price" id="draped-price">₹42,500</span>
+                </div>
+                <button class="btn-draped-action" onclick="openSareeModal(activeSareeId)" title="View Details">
+                  <i class="fa-solid fa-info-circle"></i>
+                </button>
+              </div>
+
+              <!-- Shutter Flash Overlay for Photo Capture -->
+              <div id="shutter-flash" class="shutter-flash"></div>
+
+              <!-- Snapshot Countdown Overlay -->
+              <div id="countdown-overlay" class="countdown-overlay">
+                <span id="countdown-number">3</span>
+              </div>
+
+              <!-- Bottom Mirror Floating Action Bar -->
+              <div class="mirror-floating-controls">
+                <button class="mirror-action-btn secondary" onclick="toggleLightingPreset()" id="btn-lighting">
+                  <i class="fa-solid fa-sun-bright"></i>
+                  <span id="lighting-mode-label" data-i18n="lighting_showroom">Showroom Lights</span>
+                </button>
+
+                <button class="mirror-action-btn primary capture-btn" onclick="captureSnapshot()" id="btn-capture-snapshot">
+                  <div class="capture-btn-inner">
+                    <i class="fa-solid fa-camera"></i>
+                  </div>
+                  <span data-i18n="capture_photo">Capture Look</span>
+                </button>
+
+                <button class="mirror-action-btn secondary" onclick="quickAddToCompare(activeSareeId)" id="btn-compare-current">
+                  <i class="fa-solid fa-plus-minus"></i>
+                  <span data-i18n="add_to_compare">Compare</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- RIGHT SIDEBAR: QUICK STYLING & CURATED SAREE SELECTOR -->
+          <aside class="mirror-sidebar" aria-label="Styling and Saree Switcher">
+            
+            <!-- Quick Drape & Style Customizer Card -->
+            <div class="sidebar-panel-box style-customizer-box">
+              <div class="panel-header-row">
+                <div class="panel-heading">
+                  <i class="fa-solid fa-sliders text-blue"></i>
+                  <span data-i18n="drape_styling">Drape & Styling</span>
+                </div>
+                <span class="badge-blue" data-i18n="ar_active">AR Live</span>
+              </div>
+
+              <!-- Drape Style Selector -->
+              <div class="styling-group">
+                <label class="control-label" data-i18n="drape_style">Draping Style</label>
+                <div class="pill-group" id="drape-style-pills">
+                  <button class="style-chip active" onclick="setDrapeStyle('nivi', this)">Classic Nivi</button>
+                  <button class="style-chip" onclick="setDrapeStyle('pleated', this)">Pinned Pleats</button>
+                  <button class="style-chip" onclick="setDrapeStyle('floating', this)">Floating Pallu</button>
+                  <button class="style-chip" onclick="setDrapeStyle('gujarati', this)">Seedha Pallu</button>
+                </div>
+              </div>
+
+              <!-- Blouse Contrast Matcher -->
+              <div class="styling-group">
+                <label class="control-label" data-i18n="blouse_color">Blouse Pairing</label>
+                <div class="swatch-row">
+                  <button class="color-swatch active" style="background: #800000;" onclick="setBlouseColor('#800000', 'Crimson Brocade', this)" title="Crimson"></button>
+                  <button class="color-swatch" style="background: #1E5EFF;" onclick="setBlouseColor('#1E5EFF', 'Royal Blue', this)" title="Royal Blue"></button>
+                  <button class="color-swatch" style="background: #005F41;" onclick="setBlouseColor('#005F41', 'Emerald Silk', this)" title="Emerald"></button>
+                  <button class="color-swatch" style="background: #D4AF37;" onclick="setBlouseColor('#D4AF37', 'Metallic Gold', this)" title="Pure Gold"></button>
+                  <button class="color-swatch" style="background: #E0115F;" onclick="setBlouseColor('#E0115F', 'Rani Pink', this)" title="Rani Pink"></button>
+                  <button class="color-swatch" style="background: #0B2A5B;" onclick="setBlouseColor('#0B2A5B', 'Deep Navy', this)" title="Deep Navy"></button>
+                </div>
+                <span class="subtle-swatch-name" id="selected-blouse-name">Crimson Brocade</span>
+              </div>
+
+              <!-- Quick Accessory Toggle -->
+              <div class="styling-group">
+                <label class="control-label" data-i18n="jewelry_accent">Jewelry Accents</label>
+                <div class="jewelry-toggle-row">
+                  <button class="toggle-pill active" id="toggle-temple-jewels" onclick="toggleJewelry('necklace', this)">
+                    <i class="fa-solid fa-gem"></i> <span data-i18n="temple_haram">Temple Haram</span>
+                  </button>
+                  <button class="toggle-pill" id="toggle-kamarbandh" onclick="toggleJewelry('belt', this)">
+                    <i class="fa-solid fa-ring"></i> <span data-i18n="kamarbandh">Ottiyanam / Belt</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CURATED SAREE DRAWER (Quick 1-Touch Try-On) -->
+            <div class="sidebar-panel-box saree-drawer-box">
+              <div class="panel-header-row">
+                <div class="panel-heading">
+                  <i class="fa-solid fa-sparkles text-orange"></i>
+                  <span data-i18n="quick_drape_catalog">Instant Try-On Catalog</span>
+                </div>
+                <button class="btn-link" onclick="switchTab('catalog')" data-i18n="view_all">View All (8) →</button>
+              </div>
+
+              <div class="quick-saree-carousel" id="quick-saree-list">
+                <!-- Rendered dynamically by JavaScript -->
+              </div>
+            </div>
+
+          </aside>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           TAB 2: FULL SAREE COLLECTION / CATALOG
+           ========================================== -->
+      <section id="tab-catalog" class="tab-panel" aria-label="Saree Collection">
+        <div class="catalog-page-container">
+          
+          <!-- Catalog Hero Banner -->
+          <div class="catalog-header-bar">
+            <div>
+              <h2 class="catalog-main-title" data-i18n="curated_masterpieces">Handcrafted Saree Masterpieces</h2>
+              <p class="catalog-sub-title" data-i18n="catalog_subtitle">Authentic pure zari weaves, heritage looms, and contemporary celebrations.</p>
+            </div>
+            
+            <!-- Category Filter Chips -->
+            <div class="catalog-filter-chips" id="catalog-category-chips">
+              <button class="category-chip active" onclick="filterCatalog('all', this)" data-i18n="all_sarees">All Sarees</button>
+              <button class="category-chip" onclick="filterCatalog('kanjivaram', this)" data-i18n="cat_kanjivaram">Kanjivaram Silk</button>
+              <button class="category-chip" onclick="filterCatalog('banarasi', this)" data-i18n="cat_banarasi">Banarasi Brocade</button>
+              <button class="category-chip" onclick="filterCatalog('organza', this)" data-i18n="cat_organza">Designer Organza</button>
+              <button class="category-chip" onclick="filterCatalog('bridal', this)" data-i18n="cat_bridal">Bridal Heritage</button>
+            </div>
+          </div>
+
+          <!-- Sarees are the HERO - Clean, Spacious, High-Res Grid -->
+          <div class="saree-hero-grid" id="saree-hero-grid">
+            <!-- Dynamic Saree Cards Loaded via JS -->
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           TAB 3: COMPARE LOOKS
+           ========================================== -->
+      <section id="tab-compare" class="tab-panel" aria-label="Compare Looks">
+        <div class="compare-page-container">
+          <div class="compare-header">
+            <h2 class="compare-title" data-i18n="compare_title">Side-by-Side Saree Drape Comparison</h2>
+            <p class="compare-desc" data-i18n="compare_desc">Evaluate colors, zari luster, and silhouette styles to find your perfect match.</p>
+          </div>
+
+          <div class="compare-split-board">
+            <!-- SLOT A -->
+            <div class="compare-slot" id="compare-slot-a">
+              <div class="slot-header">
+                <span class="slot-badge badge-blue">LOOK A</span>
+                <div class="slot-selector-dropdown">
+                  <select id="select-compare-a" onchange="changeCompareSelection('a', this.value)"></select>
+                </div>
+              </div>
+              <div class="slot-preview-card">
+                <div class="slot-image-wrapper">
+                  <img id="img-compare-a" src="assets/saree_kanjivaram_red.jpg" alt="Look A">
+                </div>
+                <div class="slot-specs" id="specs-compare-a"></div>
+                <button class="btn-primary-orange full-width" onclick="drapeFromCompare('a')">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="try_look_a">Drape Look A</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- VS DIVIDER -->
+            <div class="compare-vs-badge">
+              <span>VS</span>
+            </div>
+
+            <!-- SLOT B -->
+            <div class="compare-slot" id="compare-slot-b">
+              <div class="slot-header">
+                <span class="slot-badge badge-orange">LOOK B</span>
+                <div class="slot-selector-dropdown">
+                  <select id="select-compare-b" onchange="changeCompareSelection('b', this.value)"></select>
+                </div>
+              </div>
+              <div class="slot-preview-card">
+                <div class="slot-image-wrapper">
+                  <img id="img-compare-b" src="assets/saree_peacock_blue.jpg" alt="Look B">
+                </div>
+                <div class="slot-specs" id="specs-compare-b"></div>
+                <button class="btn-primary-orange full-width" onclick="drapeFromCompare('b')">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="try_look_b">Drape Look B</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           TAB 4: SAVED LOOKS / QR CODE SESSION GALLERY
+           ========================================== -->
+      <section id="tab-gallery" class="tab-panel" aria-label="Saved Looks">
+        <div class="gallery-page-container">
+          <div class="gallery-header-row">
+            <div>
+              <h2 class="gallery-title" data-i18n="saved_looks_title">Your AI Mirror Boutique Session</h2>
+              <p class="gallery-desc" data-i18n="saved_looks_desc">Browse your captured snapshots, compare draped looks, or download to your phone via QR code.</p>
+            </div>
+            <button class="btn-secondary-blue" onclick="switchTab('mirror')" data-i18n="capture_more">
+              <i class="fa-solid fa-camera"></i> Capture New Look
+            </button>
+          </div>
+
+          <div class="snaps-grid" id="snaps-grid">
+            <!-- Dynamically populated or empty state -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Kiosk Quick Bar -->
+    <footer class="app-bottom-bar">
+      <div class="bottom-bar-left">
+        <span class="store-location"><i class="fa-solid fa-location-dot"></i> Vastra Flagship Boutique • Chennai</span>
+      </div>
+      <div class="bottom-bar-center">
+        <span class="active-stylist-tag"><i class="fa-solid fa-sparkles text-orange"></i> <span data-i18n="ai_stylist_active">AI Draper Engine v2.4 Active</span></span>
+      </div>
+      <div class="bottom-bar-right">
+        <span id="kiosk-live-clock" class="kiosk-clock">00:00:00</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ==============================================
+       MODALS & DIALOGS
+       ============================================== -->
+
+  <!-- SAREE DETAILS HERO MODAL -->
+  <div id="modal-saree-details" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'modal-saree-details')">
+    <div class="modal-card saree-hero-modal">
+      <button class="modal-close-btn" onclick="closeModal('modal-saree-details')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-hero-split">
+        <!-- Hero Saree Photo Side -->
+        <div class="modal-photo-column">
+          <div class="modal-hero-img-box">
+            <img id="modal-saree-img" src="assets/saree_kanjivaram_red.jpg" alt="Saree Hero View">
+            <span class="modal-silk-tag" id="modal-silk-tag">Silk Mark Certified</span>
+          </div>
+        </div>
+
+        <!-- Details & Story Side -->
+        <div class="modal-info-column">
+          <div class="modal-info-header">
+            <span class="modal-category-chip" id="modal-saree-category">Kanjivaram Silk</span>
+            <h2 class="modal-saree-title" id="modal-saree-title">Crimson Red Temple Border Kanjivaram</h2>
+            <div class="modal-price-row">
+              <span class="modal-saree-price" id="modal-saree-price">₹42,500</span>
+              <span class="modal-tax-tag" data-i18n="inclusive_taxes">Inclusive of all boutique taxes</span>
+            </div>
+          </div>
+
+          <p class="modal-saree-story" id="modal-saree-story">
+            Handwoven by master artisans with pure 3-ply mulberry silk and 24K electroplated gold zari. Features royal Annapakshi motifs and an auspicious Korvai temple border.
+          </p>
+
+          <div class="modal-specs-table">
+            <div class="spec-row">
+              <span class="spec-key" data-i18n="fabric_type">Fabric</span>
+              <span class="spec-val" id="modal-saree-fabric">Pure Mulberry Silk</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key" data-i18n="zari_work">Zari Grade</span>
+              <span class="spec-val" id="modal-saree-zari">Pure Gold Tested Zari</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key" data-i18n="weave_origin">Origin</span>
+              <span class="spec-val" id="modal-saree-origin">Kanchipuram, Tamil Nadu</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-key" data-i18n="blouse_piece">Blouse</span>
+              <span class="spec-val" id="modal-saree-blouse">Included (Matching Silk with Zari Sleeves)</span>
+            </div>
+          </div>
+
+          <div class="modal-action-buttons">
+            <button class="btn-primary-orange btn-large" id="modal-btn-tryon" onclick="drapeSareeFromModal()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <span data-i18n="try_this_now">Try On in Mirror</span>
+            </button>
+            <button class="btn-secondary-blue btn-large" onclick="openStaffAssistanceForSaree()">
+              <i class="fa-solid fa-bell-concierge"></i>
+              <span data-i18n="request_physical_trial">Bring to Trial Room</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SNAPSHOT CAPTURED / QR CODE MODAL -->
+  <div id="modal-snapshot-qr" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'modal-snapshot-qr')">
+    <div class="modal-card qr-modal-card">
+      <button class="modal-close-btn" onclick="closeModal('modal-snapshot-qr')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="qr-content-wrapper">
+        <div class="qr-snapshot-preview">
+          <img id="qr-snap-img" src="" alt="Captured Mirror Snapshot">
+        </div>
+        <div class="qr-info-section">
+          <span class="badge-orange" data-i18n="look_saved_badge">Look Captured!</span>
+          <h3 class="qr-title" data-i18n="take_look_home">Scan to Take This Look Home</h3>
+          <p class="qr-subtitle" data-i18n="scan_mobile_desc">Scan this QR code with your mobile camera to instantly view high-res photo, saree details & share on WhatsApp.</p>
+          
+          <div class="qr-canvas-holder">
+            <!-- Simulated QR code generated via canvas -->
+            <canvas id="qr-code-canvas" width="180" height="180"></canvas>
+          </div>
+          
+          <div class="qr-footer-actions">
+            <button class="btn-primary-orange" onclick="downloadSnapshotLocally()">
+              <i class="fa-solid fa-download"></i> <span data-i18n="download_image">Save Image</span>
+            </button>
+            <button class="btn-secondary-blue" onclick="closeModal('modal-snapshot-qr')">
+              <i class="fa-solid fa-check"></i> <span data-i18n="done">Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF ASSISTANCE CONFIRMATION TOAST / MODAL -->
+  <div id="toast-stylist" class="stylist-alert-toast">
+    <div class="toast-icon"><i class="fa-solid fa-bell-concierge"></i></div>
+    <div class="toast-body">
+      <strong id="toast-title" data-i18n="stylist_alert_title">Stylist On The Way!</strong>
+      <p id="toast-msg" data-i18n="stylist_alert_msg">A boutique concierge has been notified to assist you at Mirror Station #1.</p>
+    </div>
+    <button class="toast-close" onclick="closeStylistToast()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
