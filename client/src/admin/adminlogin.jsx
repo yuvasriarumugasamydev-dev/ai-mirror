@@ -828,7 +828,7 @@ export function AdminLogin({ onBackToMirror }) {
                               <div>
                                 <div style={{ fontSize: '14px', fontWeight: '700', color: '#3D0A1E' }}>{item.name}</div>
                                 <div style={{ fontSize: '12px', color: '#7A4E5F', marginTop: '2px' }}>
-                                  {item.fabric} • <span style={{ color: '#A61C52', fontWeight: '600' }}>₹{item.price}</span>
+                                  {item.fabric} • <span style={{ color: '#A61C52', fontWeight: '600' }}>{item.price?.toString().startsWith('₹') ? item.price : `₹${item.price}`}</span>
                                 </div>
                               </div>
                             </div>
