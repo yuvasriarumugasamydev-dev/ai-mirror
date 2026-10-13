@@ -64,10 +64,18 @@ export const getSnapshots = async (req, res) => {
     let totalCount = 0;
     let docs = [];
 
+    let sareeCounts = {};
     try {
       todayCount = await Snapshot.countDocuments({ createdAt: { $gte: startOfToday } });
       totalCount = await Snapshot.countDocuments({});
       docs = await Snapshot.find().sort({ createdAt: -1 }).limit(20);
+
+      const agg = await Snapshot.aggregate([
+        { $group: { _id: '$sareeId', count: { $sum: 1 } } }
+      ]);
+      agg.forEach(a => {
+        if (a._id) sareeCounts[a._id] = a.count;
+      });
     } catch (dbErr) {
       // Memory fallback if DB query fails
       const todayDateStr = new Date().toISOString().slice(0, 10);
@@ -80,6 +88,11 @@ export const getSnapshots = async (req, res) => {
       }).length;
       totalCount = inMemorySnapshots.length;
       docs = inMemorySnapshots;
+      inMemorySnapshots.forEach(s => {
+        if (s.sareeId) {
+          sareeCounts[s.sareeId] = (sareeCounts[s.sareeId] || 0) + 1;
+        }
+      });
     }
 
     res.json({
@@ -87,10 +100,11 @@ export const getSnapshots = async (req, res) => {
       count: docs.length,
       todayCount,
       totalCount,
+      sareeCounts,
       data: docs
     });
   } catch (error) {
-    res.json({ success: true, count: 0, todayCount: 0, totalCount: 0, data: [] });
+    res.json({ success: true, count: 0, todayCount: 0, totalCount: 0, sareeCounts: {}, data: [] });
   }
 };
 

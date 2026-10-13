@@ -104,6 +104,7 @@ export function AdminLogin({ onBackToMirror }) {
   // LIVE TRY-ON REAL-TIME METRICS
   const [tryOnsToday, setTryOnsToday] = useState(0);
   const [totalTryOns, setTotalTryOns] = useState(0);
+  const [sareeTryCounts, setSareeTryCounts] = useState({});
 
   const fetchLiveTryOnCounts = React.useCallback(async () => {
     try {
@@ -121,6 +122,9 @@ export function AdminLogin({ onBackToMirror }) {
             const serverTotal = Number(data.totalCount) || 0;
             setTryOnsToday(Math.max(localToday, serverToday));
             setTotalTryOns(Math.max(localTotal, serverTotal));
+            if (data.sareeCounts && typeof data.sareeCounts === 'object') {
+              setSareeTryCounts(data.sareeCounts);
+            }
             return;
           }
         }
@@ -854,163 +858,151 @@ export function AdminLogin({ onBackToMirror }) {
                   </div>
 
                   {/* CARD 2: SAREE FABRIC TRY-ON DISTRIBUTION DONUT CHART */}
-                  <div style={{ ...styles.tableCard, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={styles.tableCardHeader}>
+                  {(() => {
+                    // Compute dynamic fabric stats from actual products and tryon records
+                    const fabricMap = {};
+                    products.forEach(p => {
+                      const f = p.fabric ? p.fabric.split('(')[0].trim() : 'Pure Silk';
+                      const count = sareeTryCounts[p.sareeId] || sareeTryCounts[p.id] || 0;
+                      fabricMap[f] = (fabricMap[f] || 0) + count;
+                    });
+
+                    const fabricEntries = Object.entries(fabricMap);
+                    const totalFabricDrapes = fabricEntries.reduce((sum, [, val]) => sum + val, 0);
+
+                    // Colors for fabrics
+                    const fabricColors = ['#A61C52', '#C58B37', '#E8A598', '#10B981', '#1E5EFF', '#8B5CF6'];
+
+                    // If total is 0, give each fabric 0 and a clean ring
+                    const circumference = 238.7;
+                    let accumulatedPercent = 0;
+                    const segments = fabricEntries.slice(0, 4).map(([fabricName, count], i) => {
+                      const pct = totalFabricDrapes > 0 ? (count / totalFabricDrapes) : (fabricEntries.length > 0 ? (1 / fabricEntries.length) : 0.25);
+                      const dashLength = totalFabricDrapes > 0 ? (pct * circumference) : (circumference / Math.max(fabricEntries.length, 1));
+                      const offset = -(accumulatedPercent * circumference);
+                      accumulatedPercent += pct;
+                      return {
+                        name: fabricName,
+                        count,
+                        pct: totalFabricDrapes > 0 ? Math.round(pct * 100) : 0,
+                        color: fabricColors[i % fabricColors.length],
+                        dasharray: `${dashLength.toFixed(1)} ${circumference}`,
+                        dashoffset: offset.toFixed(1)
+                      };
+                    });
+
+                    return (
+                      <div style={{ ...styles.tableCard, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
-                          <h3 style={styles.tableCardTitle}>
-                            <i className="fa-solid fa-chart-pie" style={{ color: '#A61C52', marginRight: '8px' }}></i>
-                            Fabric Try-On Distribution
-                          </h3>
-                          <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Real-time customer drape trials by fabric</span>
-                        </div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
-                          <i className="fa-solid fa-circle" style={{ fontSize: '7px' }}></i>
-                          148 Drapes Total
-                        </span>
-                      </div>
-
-                      {/* Donut Chart & Legend Container */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', padding: '12px 0 16px 0' }}>
-                        
-                        {/* 1. LUXURY SVG DONUT CHART */}
-                        <div style={{ position: 'relative', width: '155px', height: '155px', flexShrink: 0 }}>
-                          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-                            {/* Segment 1: Pure Silk / Kanjivaram (45% -> 45) */}
-                            <circle
-                              cx="50" cy="50" r="38"
-                              fill="transparent"
-                              stroke="#A61C52"
-                              strokeWidth="16"
-                              strokeDasharray="107.4 238.7"
-                              strokeDashoffset="0"
-                            />
-                            {/* Segment 2: Banarasi Silk (28% -> 28) */}
-                            <circle
-                              cx="50" cy="50" r="38"
-                              fill="transparent"
-                              stroke="#C58B37"
-                              strokeWidth="16"
-                              strokeDasharray="66.8 238.7"
-                              strokeDashoffset="-107.4"
-                            />
-                            {/* Segment 3: Organza Tissue (17% -> 17) */}
-                            <circle
-                              cx="50" cy="50" r="38"
-                              fill="transparent"
-                              stroke="#E8A598"
-                              strokeWidth="16"
-                              strokeDasharray="40.5 238.7"
-                              strokeDashoffset="-174.2"
-                            />
-                            {/* Segment 4: Handloom Tussar (10% -> 10) */}
-                            <circle
-                              cx="50" cy="50" r="38"
-                              fill="transparent"
-                              stroke="#10B981"
-                              strokeWidth="16"
-                              strokeDasharray="23.9 238.7"
-                              strokeDashoffset="-214.7"
-                            />
-                          </svg>
-
-                          {/* Center Hole Badge with Total */}
-                          <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            textAlign: 'center',
-                            pointerEvents: 'none'
-                          }}>
-                            <div style={{ fontSize: '19px', fontWeight: '800', color: '#3D0A1E', lineHeight: '1.1' }}>
-                              148
+                          <div style={styles.tableCardHeader}>
+                            <div>
+                              <h3 style={styles.tableCardTitle}>
+                                <i className="fa-solid fa-chart-pie" style={{ color: '#A61C52', marginRight: '8px' }}></i>
+                                Fabric Try-On Distribution
+                              </h3>
+                              <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Real-time customer drape trials by fabric</span>
                             </div>
-                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Try-Ons
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
+                              <i className="fa-solid fa-circle" style={{ fontSize: '7px' }}></i>
+                              {totalTryOns} Drapes Total
+                            </span>
+                          </div>
+
+                          {/* Donut Chart & Legend Container */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', padding: '12px 0 16px 0' }}>
+                            
+                            {/* 1. LUXURY SVG DONUT CHART */}
+                            <div style={{ position: 'relative', width: '155px', height: '155px', flexShrink: 0 }}>
+                              <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                                {totalFabricDrapes === 0 ? (
+                                  <circle cx="50" cy="50" r="38" fill="transparent" stroke="#E8DACF" strokeWidth="16" />
+                                ) : (
+                                  segments.map((seg, sIdx) => (
+                                    <circle
+                                      key={sIdx}
+                                      cx="50" cy="50" r="38"
+                                      fill="transparent"
+                                      stroke={seg.color}
+                                      strokeWidth="16"
+                                      strokeDasharray={seg.dasharray}
+                                      strokeDashoffset={seg.dashoffset}
+                                    />
+                                  ))
+                                )}
+                              </svg>
+
+                              {/* Center Hole Badge with Total */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: 'center',
+                                pointerEvents: 'none'
+                              }}>
+                                <div style={{ fontSize: '19px', fontWeight: '800', color: '#3D0A1E', lineHeight: '1.1' }}>
+                                  {totalTryOns}
+                                </div>
+                                <div style={{ fontSize: '10px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  Try-Ons
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. FABRIC BREAKDOWN LEGEND */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {segments.length === 0 ? (
+                                <div style={{ fontSize: '12px', color: '#7A4E5F' }}>No fabric data recorded yet.</div>
+                              ) : (
+                                segments.map((seg, sIdx) => (
+                                  <div key={sIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: seg.color, display: 'inline-block' }}></span>
+                                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {seg.name}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ fontSize: '11px', color: '#7A4E5F' }}>{seg.count} drapes</span>
+                                      <span style={{ fontSize: '11px', fontWeight: '800', color: seg.color, background: `${seg.color}1A`, padding: '1px 6px', borderRadius: '6px' }}>
+                                        {seg.pct}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3. SHOWROOM FABRIC INSIGHT STATS BADGES */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                            <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
+                              <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Primary Fabric</div>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#A61C52', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <i className="fa-solid fa-crown" style={{ color: '#C58B37', marginRight: '6px' }}></i>
+                                {products[0]?.fabric?.split('(')[0]?.trim() || 'Pure Silk'}
+                              </div>
+                            </div>
+                            <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
+                              <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Active Showroom Items</div>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#10B981', marginTop: '2px' }}>
+                                <i className="fa-solid fa-bolt" style={{ color: '#10B981', marginRight: '6px' }}></i>
+                                {products.length} Sarees
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* 2. FABRIC BREAKDOWN LEGEND */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          
-                          {/* Pure Silk Item */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#A61C52', display: 'inline-block' }}></span>
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Pure Silk / Bridal</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>67 drapes</span>
-                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#A61C52', background: 'rgba(166,28,82,0.1)', padding: '1px 6px', borderRadius: '6px' }}>45%</span>
-                            </div>
-                          </div>
-
-                          {/* Banarasi Katan Item */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#C58B37', display: 'inline-block' }}></span>
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Banarasi Silk</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>42 drapes</span>
-                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#C58B37', background: 'rgba(197,139,55,0.15)', padding: '1px 6px', borderRadius: '6px' }}>28%</span>
-                            </div>
-                          </div>
-
-                          {/* Organza Tissue Item */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E8A598', display: 'inline-block' }}></span>
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Organza Tissue</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>25 drapes</span>
-                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#E8A598', background: 'rgba(232,165,152,0.2)', padding: '1px 6px', borderRadius: '6px' }}>17%</span>
-                            </div>
-                          </div>
-
-                          {/* Handloom Tussar Item */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Tussar & Handloom</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>14 drapes</span>
-                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '1px 6px', borderRadius: '6px' }}>10%</span>
-                            </div>
-                          </div>
-
+                        {/* Quick Summary Footer */}
+                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
+                          <span><i className="fa-solid fa-database" style={{ color: '#10B981', marginRight: '6px' }}></i> Live Database Telemetry Verified</span>
+                          <span style={{ fontWeight: '700', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: '12px' }}>
+                            {totalTryOns > 0 ? `${totalTryOns} Trials` : 'Awaiting Mirror Trials'}
+                          </span>
                         </div>
                       </div>
-
-                      {/* 3. SHOWROOM FABRIC INSIGHT STATS BADGES (Fills vertical height) */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
-                        <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
-                          <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Conversion Leader</div>
-                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#A61C52', marginTop: '2px' }}>
-                            <i className="fa-solid fa-crown" style={{ color: '#C58B37', marginRight: '6px' }}></i>
-                            Bridal Pure Silk
-                          </div>
-                        </div>
-                        <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
-                          <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Fastest Moving</div>
-                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#10B981', marginTop: '2px' }}>
-                            <i className="fa-solid fa-bolt" style={{ color: '#10B981', marginRight: '6px' }}></i>
-                            Tissue Banarasi
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Summary Footer */}
-                    <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
-                      <span><i className="fa-solid fa-arrow-trend-up" style={{ color: '#10B981', marginRight: '6px' }}></i> Silk demand rose <b>+24%</b> this week</span>
-                      <span style={{ fontWeight: '700', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: '12px' }}>High Volume</span>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                 </div>
 
@@ -1056,24 +1048,6 @@ export function AdminLogin({ onBackToMirror }) {
 
                     <div style={{ display: 'flex', height: '240px', alignItems: 'stretch', position: 'relative' }}>
                       
-                      {/* Y-Axis scale indicators */}
-                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '14px', borderRight: '1.5px dashed #E5D5C8', color: '#7A4E5F', fontSize: '10px', fontWeight: '700', paddingBottom: '36px', width: '65px' }}>
-                        <span>100 Drapes</span>
-                        <span>75 Drapes</span>
-                        <span>50 Drapes</span>
-                        <span>25 Drapes</span>
-                        <span>0</span>
-                      </div>
-
-                      {/* Main Chart Area with Overlay Line Graph */}
-                      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingLeft: '10px' }}>
-                        
-                        {/* Horizontal Grid Guidelines */}
-                        <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-                        <div style={{ position: 'absolute', top: '65px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-                        <div style={{ position: 'absolute', top: '120px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-                        <div style={{ position: 'absolute', top: '175px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-
                         {(() => {
                           const displaySarees = products.length > 0 ? products.slice(0, 7) : [];
                           const colors = [
@@ -1086,27 +1060,22 @@ export function AdminLogin({ onBackToMirror }) {
                             'linear-gradient(180deg, #7A4E5F 0%, #9E6B7E 100%)'
                           ];
 
-                          if (displaySarees.length === 0) {
-                            return (
-                              <div style={{ textAlign: 'center', width: '100%', padding: '40px 0', color: '#7A4E5F' }}>
-                                <i className="fa-solid fa-chart-simple" style={{ fontSize: '28px', color: '#C58B37', marginBottom: '8px' }}></i>
-                                <div>No sarees loaded yet in database to show trial volume.</div>
-                              </div>
-                            );
-                          }
-
-                          // Realistic / live drape values per saree (matching 148 total try-ons)
-                          const sampleDrapes = [42, 32, 24, 18, 14, 11, 7];
-                          const sareesWithCounts = displaySarees.map((p, idx) => {
+                          // Real drape values per saree from database/snapshots
+                          const sareesWithCounts = displaySarees.map((p) => {
+                            const dbTryCount = sareeTryCounts[p.sareeId] || sareeTryCounts[p.id] || 0;
                             const parsed = parseInt(p.drapes, 10);
-                            const count = !isNaN(parsed) && parsed > 0 ? parsed : sampleDrapes[idx % sampleDrapes.length];
+                            const count = dbTryCount > 0 ? dbTryCount : (!isNaN(parsed) ? parsed : 0);
                             return { ...p, count };
                           });
 
+                          // Determine max scale dynamically: if all 0, base max is 10
+                          const calculatedMax = Math.max(...sareesWithCounts.map(s => s.count), 0);
+                          const maxCount = calculatedMax > 0 ? Math.ceil(calculatedMax / 5) * 5 : 10;
+
                           // SVG Line coordinates dynamically matching bar heights
                           const countToY = (cnt) => {
-                            // 100 drapes = y 15, 0 drapes = y 165
-                            return Math.round(165 - (cnt / 100) * 150);
+                            if (cnt === 0) return 175;
+                            return Math.round(175 - (cnt / maxCount) * 150);
                           };
 
                           const points = sareesWithCounts.map((s, idx) => {
@@ -1117,80 +1086,106 @@ export function AdminLogin({ onBackToMirror }) {
 
                           const pathD = points.length > 0 
                             ? `M ${points.map(pt => `${pt.x} ${pt.y}`).join(' L ')}`
-                            : 'M 50 165';
+                            : 'M 50 175';
                           const areaD = points.length > 0
                             ? `M ${points[0].x} 175 L ${points.map(pt => `${pt.x} ${pt.y}`).join(' L ')} L ${points[points.length - 1].x} 175 Z`
                             : '';
 
                           return (
                             <>
-                              {/* SMOOTH CONNECTING LINE SVG OVERLAY DYNAMICALLY MATCHED */}
-                              <svg viewBox="0 0 700 180" style={{ position: 'absolute', top: '10px', left: 0, width: '100%', height: '175px', pointerEvents: 'none', zIndex: 3 }} preserveAspectRatio="none">
-                                <defs>
-                                  <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#A61C52" />
-                                    <stop offset="50%" stopColor="#C58B37" />
-                                    <stop offset="100%" stopColor="#10B981" />
-                                  </linearGradient>
-                                  <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="rgba(166, 28, 82, 0.15)" />
-                                    <stop offset="100%" stopColor="rgba(166, 28, 82, 0.0)" />
-                                  </linearGradient>
-                                </defs>
+                              {/* Y-Axis dynamic scale indicators */}
+                              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '14px', borderRight: '1.5px dashed #E5D5C8', color: '#7A4E5F', fontSize: '10px', fontWeight: '700', paddingBottom: '36px', width: '65px' }}>
+                                <span>{maxCount} Drapes</span>
+                                <span>{Math.round(maxCount * 0.75)} Drapes</span>
+                                <span>{Math.round(maxCount * 0.5)} Drapes</span>
+                                <span>{Math.round(maxCount * 0.25)} Drapes</span>
+                                <span>0</span>
+                              </div>
 
-                                {areaD && <path d={areaD} fill="url(#areaGrad)" />}
-                                <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinecap="round" />
+                              {/* Main Chart Area with Overlay Line Graph */}
+                              <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingLeft: '10px' }}>
+                                
+                                {/* Horizontal Grid Guidelines */}
+                                <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+                                <div style={{ position: 'absolute', top: '65px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+                                <div style={{ position: 'absolute', top: '120px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+                                <div style={{ position: 'absolute', top: '175px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
 
-                                {points.map((pt, pIdx) => (
-                                  <circle key={pIdx} cx={pt.x} cy={pt.y} r="5" fill="#FFFFFF" stroke="#A61C52" strokeWidth="2.5" />
-                                ))}
-                              </svg>
-
-                              {sareesWithCounts.map((p, idx) => {
-                                const trialsCount = p.count;
-                                const pct = Math.min(Math.max(Math.round((trialsCount / 100) * 100), 12), 92);
-
-                                return (
-                                  <div key={p.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '56px', position: 'relative', zIndex: 4 }}>
-                                    
-                                    {/* Floating Count Badge on Top */}
-                                    <div style={{ background: '#FFFFFF', border: '1.5px solid #E8DACF', padding: '2px 7px', borderRadius: '8px', fontSize: '10px', fontWeight: '800', color: '#3D0A1E', marginBottom: '8px', boxShadow: '0 2px 8px rgba(61,10,30,0.06)', whiteSpace: 'nowrap' }}>
-                                      {trialsCount}
-                                    </div>
-
-                                    {/* Stylized Column Bar with Soft Glass Shadow */}
-                                    <div
-                                      title={`${p.name} (${p.fabric}): ${trialsCount} trials`}
-                                      style={{
-                                        width: '32px',
-                                        height: `${pct}%`,
-                                        background: colors[idx % colors.length],
-                                        borderRadius: '8px 8px 0 0',
-                                        boxShadow: '0 6px 16px rgba(61, 10, 30, 0.12)',
-                                        transition: 'all 0.4s ease'
-                                      }}
-                                    ></div>
-
-                                    {/* X-Axis Saree & Fabric Labels */}
-                                    <div style={{ marginTop: '10px', textAlign: 'center', width: '68px' }}>
-                                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#3D0A1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {p.name}
-                                      </div>
-                                      <div style={{ fontSize: '9px', color: '#7A4E5F', fontWeight: '600', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {p.fabric}
-                                      </div>
-                                    </div>
-
+                                {displaySarees.length === 0 ? (
+                                  <div style={{ textAlign: 'center', width: '100%', padding: '40px 0', color: '#7A4E5F' }}>
+                                    <i className="fa-solid fa-chart-simple" style={{ fontSize: '28px', color: '#C58B37', marginBottom: '8px' }}></i>
+                                    <div>No sarees loaded yet in database to show trial volume.</div>
                                   </div>
-                                );
-                              })}
+                                ) : (
+                                  <>
+                                    {/* SMOOTH CONNECTING LINE SVG OVERLAY DYNAMICALLY MATCHED */}
+                                    <svg viewBox="0 0 700 180" style={{ position: 'absolute', top: '10px', left: 0, width: '100%', height: '175px', pointerEvents: 'none', zIndex: 3 }} preserveAspectRatio="none">
+                                      <defs>
+                                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                          <stop offset="0%" stopColor="#A61C52" />
+                                          <stop offset="50%" stopColor="#C58B37" />
+                                          <stop offset="100%" stopColor="#10B981" />
+                                        </linearGradient>
+                                        <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                          <stop offset="0%" stopColor="rgba(166, 28, 82, 0.15)" />
+                                          <stop offset="100%" stopColor="rgba(166, 28, 82, 0.0)" />
+                                        </linearGradient>
+                                      </defs>
+
+                                      {areaD && <path d={areaD} fill="url(#areaGrad)" />}
+                                      <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinecap="round" />
+
+                                      {points.map((pt, pIdx) => (
+                                        <circle key={pIdx} cx={pt.x} cy={pt.y} r="5" fill="#FFFFFF" stroke="#A61C52" strokeWidth="2.5" />
+                                      ))}
+                                    </svg>
+
+                                    {sareesWithCounts.map((p, idx) => {
+                                      const trialsCount = p.count;
+                                      const pct = trialsCount === 0 ? 0 : Math.min(Math.max(Math.round((trialsCount / maxCount) * 88), 10), 92);
+
+                                      return (
+                                        <div key={p.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '56px', position: 'relative', zIndex: 4 }}>
+                                          
+                                          {/* Floating Count Badge on Top */}
+                                          <div style={{ background: '#FFFFFF', border: '1.5px solid #E8DACF', padding: '2px 7px', borderRadius: '8px', fontSize: '10px', fontWeight: '800', color: trialsCount > 0 ? '#3D0A1E' : '#7A4E5F', marginBottom: '8px', boxShadow: '0 2px 8px rgba(61,10,30,0.06)', whiteSpace: 'nowrap' }}>
+                                            {trialsCount}
+                                          </div>
+
+                                          {/* Stylized Column Bar with Soft Glass Shadow */}
+                                          <div
+                                            title={`${p.name} (${p.fabric}): ${trialsCount} trials`}
+                                            style={{
+                                              width: '32px',
+                                              height: trialsCount === 0 ? '4px' : `${pct}%`,
+                                              background: trialsCount === 0 ? '#E8DACF' : colors[idx % colors.length],
+                                              borderRadius: trialsCount === 0 ? '2px' : '8px 8px 0 0',
+                                              boxShadow: trialsCount === 0 ? 'none' : '0 6px 16px rgba(61, 10, 30, 0.12)',
+                                              transition: 'all 0.4s ease'
+                                            }}
+                                          ></div>
+
+                                          {/* X-Axis Saree & Fabric Labels */}
+                                          <div style={{ marginTop: '10px', textAlign: 'center', width: '68px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#3D0A1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {p.name}
+                                            </div>
+                                            <div style={{ fontSize: '9px', color: '#7A4E5F', fontWeight: '600', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {p.fabric}
+                                            </div>
+                                          </div>
+
+                                        </div>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                              </div>
                             </>
                           );
                         })()}
                       </div>
-
                     </div>
-                  </div>
 
                   {/* 2. FABRIC BREAKDOWN PILLS & INSIGHT SUMMARY */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
