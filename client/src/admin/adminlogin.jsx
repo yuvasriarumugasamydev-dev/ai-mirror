@@ -854,142 +854,161 @@ export function AdminLogin({ onBackToMirror }) {
                   </div>
 
                   {/* CARD 2: SAREE FABRIC TRY-ON DISTRIBUTION DONUT CHART */}
-                  <div style={styles.tableCard}>
-                    <div style={styles.tableCardHeader}>
-                      <div>
-                        <h3 style={styles.tableCardTitle}>
-                          <i className="fa-solid fa-chart-pie" style={{ color: '#A61C52', marginRight: '8px' }}></i>
-                          Fabric Try-On Distribution
-                        </h3>
-                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Real-time customer drape trials by fabric</span>
-                      </div>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
-                        <i className="fa-solid fa-circle" style={{ fontSize: '7px' }}></i>
-                        148 Drapes Total
-                      </span>
-                    </div>
-
-                    {/* Donut Chart & Legend Container */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', padding: '10px 0' }}>
-                      
-                      {/* 1. LUXURY SVG DONUT CHART */}
-                      <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0 }}>
-                        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-                          {/* Segment 1: Pure Silk / Kanjivaram (45% -> 45) */}
-                          <circle
-                            cx="50" cy="50" r="38"
-                            fill="transparent"
-                            stroke="#A61C52"
-                            strokeWidth="16"
-                            strokeDasharray="107.4 238.7"
-                            strokeDashoffset="0"
-                            style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                          />
-                          {/* Segment 2: Banarasi Silk (28% -> 28) */}
-                          <circle
-                            cx="50" cy="50" r="38"
-                            fill="transparent"
-                            stroke="#C58B37"
-                            strokeWidth="16"
-                            strokeDasharray="66.8 238.7"
-                            strokeDashoffset="-107.4"
-                          />
-                          {/* Segment 3: Organza Tissue (17% -> 17) */}
-                          <circle
-                            cx="50" cy="50" r="38"
-                            fill="transparent"
-                            stroke="#E8A598"
-                            strokeWidth="16"
-                            strokeDasharray="40.5 238.7"
-                            strokeDashoffset="-174.2"
-                          />
-                          {/* Segment 4: Handloom Tussar (10% -> 10) */}
-                          <circle
-                            cx="50" cy="50" r="38"
-                            fill="transparent"
-                            stroke="#10B981"
-                            strokeWidth="16"
-                            strokeDasharray="23.9 238.7"
-                            strokeDashoffset="-214.7"
-                          />
-                        </svg>
-
-                        {/* Center Hole Badge with Total */}
-                        <div style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          textAlign: 'center',
-                          pointerEvents: 'none'
-                        }}>
-                          <div style={{ fontSize: '18px', fontWeight: '800', color: '#3D0A1E', lineHeight: '1.1' }}>
-                            148
-                          </div>
-                          <div style={{ fontSize: '10px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Try-Ons
-                          </div>
+                  <div style={{ ...styles.tableCard, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={styles.tableCardHeader}>
+                        <div>
+                          <h3 style={styles.tableCardTitle}>
+                            <i className="fa-solid fa-chart-pie" style={{ color: '#A61C52', marginRight: '8px' }}></i>
+                            Fabric Try-On Distribution
+                          </h3>
+                          <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Real-time customer drape trials by fabric</span>
                         </div>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
+                          <i className="fa-solid fa-circle" style={{ fontSize: '7px' }}></i>
+                          148 Drapes Total
+                        </span>
                       </div>
 
-                      {/* 2. FABRIC BREAKDOWN LEGEND */}
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Donut Chart & Legend Container */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', padding: '12px 0 16px 0' }}>
                         
-                        {/* Pure Silk Item */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#A61C52', display: 'inline-block' }}></span>
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Pure Silk / Bridal</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>67 drapes</span>
-                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#A61C52', background: 'rgba(166,28,82,0.1)', padding: '1px 6px', borderRadius: '6px' }}>45%</span>
+                        {/* 1. LUXURY SVG DONUT CHART */}
+                        <div style={{ position: 'relative', width: '155px', height: '155px', flexShrink: 0 }}>
+                          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                            {/* Segment 1: Pure Silk / Kanjivaram (45% -> 45) */}
+                            <circle
+                              cx="50" cy="50" r="38"
+                              fill="transparent"
+                              stroke="#A61C52"
+                              strokeWidth="16"
+                              strokeDasharray="107.4 238.7"
+                              strokeDashoffset="0"
+                            />
+                            {/* Segment 2: Banarasi Silk (28% -> 28) */}
+                            <circle
+                              cx="50" cy="50" r="38"
+                              fill="transparent"
+                              stroke="#C58B37"
+                              strokeWidth="16"
+                              strokeDasharray="66.8 238.7"
+                              strokeDashoffset="-107.4"
+                            />
+                            {/* Segment 3: Organza Tissue (17% -> 17) */}
+                            <circle
+                              cx="50" cy="50" r="38"
+                              fill="transparent"
+                              stroke="#E8A598"
+                              strokeWidth="16"
+                              strokeDasharray="40.5 238.7"
+                              strokeDashoffset="-174.2"
+                            />
+                            {/* Segment 4: Handloom Tussar (10% -> 10) */}
+                            <circle
+                              cx="50" cy="50" r="38"
+                              fill="transparent"
+                              stroke="#10B981"
+                              strokeWidth="16"
+                              strokeDasharray="23.9 238.7"
+                              strokeDashoffset="-214.7"
+                            />
+                          </svg>
+
+                          {/* Center Hole Badge with Total */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            textAlign: 'center',
+                            pointerEvents: 'none'
+                          }}>
+                            <div style={{ fontSize: '19px', fontWeight: '800', color: '#3D0A1E', lineHeight: '1.1' }}>
+                              148
+                            </div>
+                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Try-Ons
+                            </div>
                           </div>
                         </div>
 
-                        {/* Banarasi Katan Item */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#C58B37', display: 'inline-block' }}></span>
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Banarasi Silk</span>
+                        {/* 2. FABRIC BREAKDOWN LEGEND */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          
+                          {/* Pure Silk Item */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#A61C52', display: 'inline-block' }}></span>
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Pure Silk / Bridal</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>67 drapes</span>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#A61C52', background: 'rgba(166,28,82,0.1)', padding: '1px 6px', borderRadius: '6px' }}>45%</span>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>42 drapes</span>
-                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#C58B37', background: 'rgba(197,139,55,0.15)', padding: '1px 6px', borderRadius: '6px' }}>28%</span>
+
+                          {/* Banarasi Katan Item */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#C58B37', display: 'inline-block' }}></span>
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Banarasi Silk</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>42 drapes</span>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#C58B37', background: 'rgba(197,139,55,0.15)', padding: '1px 6px', borderRadius: '6px' }}>28%</span>
+                            </div>
+                          </div>
+
+                          {/* Organza Tissue Item */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E8A598', display: 'inline-block' }}></span>
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Organza Tissue</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>25 drapes</span>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#E8A598', background: 'rgba(232,165,152,0.2)', padding: '1px 6px', borderRadius: '6px' }}>17%</span>
+                            </div>
+                          </div>
+
+                          {/* Handloom Tussar Item */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Tussar & Handloom</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '11px', color: '#7A4E5F' }}>14 drapes</span>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '1px 6px', borderRadius: '6px' }}>10%</span>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+
+                      {/* 3. SHOWROOM FABRIC INSIGHT STATS BADGES (Fills vertical height) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                        <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
+                          <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Conversion Leader</div>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#A61C52', marginTop: '2px' }}>
+                            <i className="fa-solid fa-crown" style={{ color: '#C58B37', marginRight: '6px' }}></i>
+                            Bridal Pure Silk
                           </div>
                         </div>
-
-                        {/* Organza Tissue Item */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E8A598', display: 'inline-block' }}></span>
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Organza Tissue</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>25 drapes</span>
-                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#E8A598', background: 'rgba(232,165,152,0.2)', padding: '1px 6px', borderRadius: '6px' }}>17%</span>
+                        <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
+                          <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Fastest Moving</div>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#10B981', marginTop: '2px' }}>
+                            <i className="fa-solid fa-bolt" style={{ color: '#10B981', marginRight: '6px' }}></i>
+                            Tissue Banarasi
                           </div>
                         </div>
-
-                        {/* Handloom Tussar Item */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E' }}>Tussar & Handloom</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '11px', color: '#7A4E5F' }}>14 drapes</span>
-                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '1px 6px', borderRadius: '6px' }}>10%</span>
-                          </div>
-                        </div>
-
                       </div>
                     </div>
 
-                    {/* Donut Footer Analytics Summary */}
-                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
-                      <span><i className="fa-solid fa-crown" style={{ color: '#C58B37', marginRight: '6px' }}></i> Top Trending: <b>Kanjivaram Bridal Silk</b></span>
-                      <span style={{ fontWeight: '700', color: '#10B981' }}>+24% vs Last Week</span>
+                    {/* Quick Summary Footer */}
+                    <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
+                      <span><i className="fa-solid fa-arrow-trend-up" style={{ color: '#10B981', marginRight: '6px' }}></i> Silk demand rose <b>+24%</b> this week</span>
+                      <span style={{ fontWeight: '700', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: '12px' }}>High Volume</span>
                     </div>
                   </div>
 
