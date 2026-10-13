@@ -844,62 +844,86 @@ export function AdminLogin({ onBackToMirror }) {
                     </div>
                   </div>
 
-                  {/* CARD 2: REAL-TIME SHOWROOM ACTIVITY & MIRROR CONTROLS */}
+                  {/* CARD 2: OCCASION & WEDDING SEASON PLANNER */}
                   <div style={styles.tableCard}>
                     <div style={styles.tableCardHeader}>
                       <div>
                         <h3 style={styles.tableCardTitle}>
-                          <i className="fa-solid fa-camera-viewfinder" style={{ color: '#A61C52', marginRight: '8px' }}></i>
-                          Smart Mirror Station
+                          <i className="fa-solid fa-gem" style={{ color: '#C58B37', marginRight: '8px' }}></i>
+                          Occasion & Wedding Season Planner
                         </h3>
-                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Kiosk feed & quick showroom controls</span>
+                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Upcoming festival demand & drape spotlight</span>
                       </div>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: '20px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
-                        Kiosk Active
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#A61C52', fontWeight: '700', background: 'rgba(166, 28, 82, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
+                        <i className="fa-solid fa-ring"></i>
+                        Muhurtham Active
                       </span>
                     </div>
 
-                    {/* Clean Activity Feed */}
+                    {/* Wedding Planner Content */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A61C52', fontSize: '12px' }}>
-                          <i className="fa-solid fa-sparkles"></i>
+                      {/* 1. Season Highlight Banner */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(166, 28, 82, 0.08) 0%, rgba(197, 139, 55, 0.12) 100%)', border: '1px solid rgba(197, 139, 55, 0.25)' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A61C52', fontSize: '16px', boxShadow: '0 2px 8px rgba(166,28,82,0.15)' }}>
+                          <i className="fa-solid fa-calendar-check"></i>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#3D0A1E' }}>Virtual Try-on Completed</div>
-                          <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Customer tried boutique saree live on mirror</div>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E' }}>Wedding Muhurtham Season</div>
+                          <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '1px' }}>Peak drape demand expected in next 15 days</div>
                         </div>
-                        <span style={{ fontSize: '11px', color: '#7A4E5F' }}>Just now</span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '12px', background: '#FFFFFF', color: '#C58B37', border: '1px solid #E8DACF' }}>
+                          Next 15 Days
+                        </span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E11D48', fontSize: '12px' }}>
-                          <i className="fa-solid fa-heart"></i>
+                      {/* 2. Trending Demand Categories */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '11px', color: '#7A4E5F', fontWeight: '600' }}>Bridal Pure Silk</span>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: '8px' }}>High Demand</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: '#E8DACF', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: '85%', height: '100%', background: 'linear-gradient(90deg, #A61C52, #C58B37)', borderRadius: '3px' }}></div>
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#7A4E5F', marginTop: '3px', display: 'inline-block' }}>85% trials converted</span>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#3D0A1E' }}>Catalog Look Favorited</div>
-                          <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Customer marked saree on comparison board</div>
+
+                        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '11px', color: '#7A4E5F', fontWeight: '600' }}>Pastel Organza</span>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#C58B37', background: 'rgba(197,139,55,0.15)', padding: '2px 6px', borderRadius: '8px' }}>Trending</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: '#E8DACF', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: '68%', height: '100%', background: '#C58B37', borderRadius: '3px' }}></div>
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#7A4E5F', marginTop: '3px', display: 'inline-block' }}>68% trials converted</span>
                         </div>
-                        <span style={{ fontSize: '11px', color: '#7A4E5F' }}>5m ago</span>
+                      </div>
+
+                      {/* 3. AI Mirror Recommendation Tip */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: '#FAF5EF', border: '1px dashed #E5D5C8' }}>
+                        <i className="fa-solid fa-wand-magic-sparkles" style={{ color: '#A61C52', marginTop: '2px', fontSize: '13px' }}></i>
+                        <div style={{ fontSize: '11px', color: '#5A2A3E', lineHeight: '1.4' }}>
+                          <b style={{ color: '#3D0A1E' }}>Boutique Suggestion:</b> Spotlight <b>Red & Gold Banarasi</b> sarees on the Mirror display to boost reception trials.
+                        </div>
                       </div>
                     </div>
 
-                    {/* One-Click Quick Actions */}
-                    <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid #F5ECE6' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', marginBottom: '10px' }}>
-                        Quick Kiosk Actions
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        {onBackToMirror && (
-                          <button onClick={onBackToMirror} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #E8DACF', background: '#FAF5EF', color: '#3D0A1E', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                            <i className="fa-solid fa-desktop" style={{ color: '#A61C52' }}></i> Open Mirror
-                          </button>
-                        )}
-                        <button onClick={() => setIsAddModalOpen(true)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(90deg, #A61C52 0%, #C58B37 100%)', color: '#FFFFFF', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          <i className="fa-solid fa-plus"></i> Add Saree
-                        </button>
-                      </div>
+                    {/* Quick Action Footer */}
+                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #F5ECE6', display: 'flex', gap: '10px' }}>
+                      <button 
+                        onClick={() => setActiveMenu('products')} 
+                        style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1px solid #E8DACF', background: '#FAF5EF', color: '#3D0A1E', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                      >
+                        <i className="fa-solid fa-list-check" style={{ color: '#A61C52' }}></i> View Bridal Stock
+                      </button>
+                      <button 
+                        onClick={() => setIsAddModalOpen(true)} 
+                        style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(90deg, #A61C52 0%, #C58B37 100%)', color: '#FFFFFF', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                      >
+                        <i className="fa-solid fa-plus"></i> Add Festive Saree
+                      </button>
                     </div>
                   </div>
 
