@@ -39,22 +39,15 @@ export function AdminLogin({ onBackToMirror }) {
     } catch (e) {}
   };
 
-  // PRODUCTS STATE (Stored in DB and localStorage)
-  const [products, setProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem('vastra_admin_products');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  // PRODUCTS STATE (Direct from MongoDB DB)
+  const [products, setProducts] = useState([]);
 
   // Fetch true database products from MongoDB on mount
   React.useEffect(() => {
     fetch('/api/sarees')
       .then(r => r.json())
       .then(res => {
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        if (res && res.success && Array.isArray(res.data)) {
           const fallbackAssets = [
             '/assets/saree_kanjivaram_red.jpg',
             '/assets/saree_peacock_blue.jpg',
@@ -66,7 +59,6 @@ export function AdminLogin({ onBackToMirror }) {
 
           const formatted = res.data.map((item, idx) => {
             let finalImage = item.image;
-            // Clean out invalid / empty dummy strings
             if (!finalImage || finalImage.includes('undefined') || finalImage.includes('null')) {
               finalImage = fallbackAssets[idx % fallbackAssets.length];
             }
