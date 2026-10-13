@@ -214,17 +214,47 @@ export const AITryOnModal = ({
               <h2 className="ai-result-title">{saree?.name || 'Traditional Silk Saree'}</h2>
             </div>
 
-            {/* FULL AI DRAPED PHOTO */}
+            {/* FULL AI DRAPED PHOTO WITH VISIBLE CUSTOMER FACE */}
             <div className="ai-single-photo-container">
+              {/* If customer captured photo is available, show customer face overlay on top of draped body */}
+              {beforeSrc && beforeSrc !== afterImageUrl && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 2
+                  }}
+                >
+                  <img
+                    src={beforeSrc}
+                    alt="Customer Face"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,0) 36%)',
+                      maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,0) 36%)'
+                    }}
+                  />
+                </div>
+              )}
               <img
                 src={afterImageUrl}
                 alt="AI Draped Look"
                 className="ai-single-photo"
+                style={{ position: 'relative', zIndex: 1 }}
               />
-              <span className="slider-tag after-tag" style={{ position: 'absolute', top: '1.25rem', left: '1.25rem' }}>
+              <span className="slider-tag after-tag" style={{ position: 'absolute', top: '1.25rem', left: '1.25rem', zIndex: 3 }}>
                 <i className="fa-solid fa-sparkles"></i> AI Draped Look
               </span>
-              <span className="ai-photo-watermark-tag">
+              <span className="ai-photo-watermark-tag" style={{ zIndex: 3 }}>
                 <i className="fa-solid fa-gem"></i> VASTRA AI MIRROR
               </span>
             </div>

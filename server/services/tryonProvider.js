@@ -401,16 +401,17 @@ export class LocalDrapeProvider extends BaseTryOnProvider {
       .toBuffer();
 
     // Saree garment soft drape mask:
-    // Feathered gradient preserves customer head, face, neck, hair (above 22% of height) and smoothly blends saree down to ankles
+    // Feathered gradient strictly preserves customer head, face, eyes, nose, lips, hair (above 30% of canvas height)
+    // and blends the saree naturally from collarbone down to feet
     const maskSvg = Buffer.from(`
       <svg width="${width}" height="${height}">
         <defs>
           <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="black" stop-opacity="0" />
-            <stop offset="22%" stop-color="black" stop-opacity="0" />
-            <stop offset="28%" stop-color="white" stop-opacity="0.88" />
-            <stop offset="35%" stop-color="white" stop-opacity="0.96" />
-            <stop offset="95%" stop-color="white" stop-opacity="0.96" />
+            <stop offset="28%" stop-color="black" stop-opacity="0" />
+            <stop offset="34%" stop-color="white" stop-opacity="0.85" />
+            <stop offset="40%" stop-color="white" stop-opacity="0.98" />
+            <stop offset="96%" stop-color="white" stop-opacity="0.98" />
             <stop offset="100%" stop-color="black" stop-opacity="0.2" />
           </linearGradient>
         </defs>
