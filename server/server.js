@@ -10,6 +10,7 @@ import snapshotRoutes from './routes/snapshotRoutes.js';
 import stylistRoutes from './routes/stylistRoutes.js';
 import tryonRoutes from './routes/tryonRoutes.js';
 import resultsRoutes from './routes/resultsRoutes.js';
+import { tryOnManager } from './services/tryonProvider.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,11 +81,14 @@ const startServer = async () => {
   const lanIp = getLanIpAddress();
 
   app.listen(PORT, '0.0.0.0', () => {
+    const activeChain = tryOnManager.getActiveProviderChain();
     console.log(`===============================================`);
     console.log(`✨ VASTRA AI MIRROR - MERN BACKEND RUNNING ✨`);
     console.log(`🚀 Local Server:      http://localhost:${PORT}`);
     console.log(`📱 LAN Mobile QR:     http://${lanIp}:${PORT}/results/<id>`);
     console.log(`🔗 API Base:          http://localhost:${PORT}/api/sarees`);
+    console.log(`🤖 AI Provider Mode:  ${process.env.AI_PROVIDER || 'hf_free'}`);
+    console.log(`⛓️  Active Chain:     ${activeChain.join(' -> ')}`);
     console.log(`===============================================`);
   });
 };

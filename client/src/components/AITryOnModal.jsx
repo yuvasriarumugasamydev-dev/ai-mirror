@@ -165,23 +165,22 @@ export const AITryOnModal = ({
                   <>
                     <button
                       className="btn-model-chip"
-                      onClick={() => onRetryWithModel('local')}
-                      style={{ border: '1.5px solid #10B981', color: '#10B981', fontWeight: 700 }}
+                      onClick={() => onRetryWithModel('idm_vton')}
+                      style={{ border: '1.5px solid #0284C7', color: '#0284C7', fontWeight: 600 }}
                     >
-                      <i className="fa-solid fa-laptop-code"></i> Instant Local Drape (Offline / 100% Free)
-                    </button>
-                    <button
-                      className="btn-model-chip"
-                      onClick={() => onRetryWithModel('fal_ai')}
-                      style={{ border: '1.5px solid #FF7A1A', color: '#FF7A1A' }}
-                    >
-                      <i className="fa-solid fa-bolt"></i> Retry: Fal.ai Turbo (2s)
+                      <i className="fa-solid fa-wand-magic-sparkles"></i> Retry: IDM-VTON AI
                     </button>
                     <button
                       className="btn-model-chip"
                       onClick={() => onRetryWithModel('catvton')}
                     >
-                      <i className="fa-solid fa-vest"></i> Fallback: CatVTON
+                      <i className="fa-solid fa-vest"></i> Retry: CatVTON
+                    </button>
+                    <button
+                      className="btn-model-chip"
+                      onClick={() => onRetryWithModel('image_edit')}
+                    >
+                      <i className="fa-solid fa-paintbrush"></i> Retry: AI Drape Edit
                     </button>
                   </>
                 )}

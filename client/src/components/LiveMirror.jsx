@@ -32,10 +32,12 @@ export const LiveMirror = () => {
   } = useMirror();
 
   const videoRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [stream, setStream] = useState(null);
   const [cameraError, setCameraError] = useState(null);
   const [isFlashing, setIsFlashing] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState(null);
 
   // Full-Body MediaPipe Pose validation
   const [bodyStatus, setBodyStatus] = useState({
@@ -60,11 +62,15 @@ export const LiveMirror = () => {
   const [afterPhotoUrl, setAfterPhotoUrl] = useState(null);
   const [latestCompletedLook, setLatestCompletedLook] = useState(null);
   const [modelPreference, setModelPreference] = useState('auto');
-  const [lastUsedModel, setLastUsedModel] = useState('CatVTON (Overall)');
+  const [lastUsedModel, setLastUsedModel] = useState('AI Virtual Try-On');
   const activeJobIdRef = useRef(null);
   const pollingTimerRef = useRef(null);
   const elapsedTimerRef = useRef(null);
   const capturedBlobRef = useRef(null);
+  // Track if user has a ready photo (uploaded or captured) - persist across saree changes
+  const [hasReadyPhoto, setHasReadyPhoto] = useState(false);
+  // Track last selected saree id to detect changes
+  const lastSareeIdRef = useRef(null);
 
   // 60-second kiosk inactivity timer
   const idleTimerRef = useRef(null);
@@ -320,10 +326,6 @@ export const LiveMirror = () => {
     offscreen.height = outHeight;
     const ctx = offscreen.getContext('2d');
 
-    // Fill canvas background with clean neutral studio color (no black bars)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, outWidth, outHeight);
-
     // Mirrored horizontally like real mirror
     ctx.save();
     ctx.translate(outWidth, 0);
@@ -332,14 +334,14 @@ export const LiveMirror = () => {
     const vWidth = video.videoWidth || 640;
     const vHeight = video.videoHeight || 480;
 
-    // FIT INSIDE BY PADDING (NEVER CROPPING)
-    const scale = Math.min(outWidth / vWidth, outHeight / vHeight);
+    // Cover the 3:4 portrait canvas edge-to-edge with the real webcam feed (NO WHITE BARS!)
+    const scale = Math.max(outWidth / vWidth, outHeight / vHeight);
     const dw = vWidth * scale;
     const dh = vHeight * scale;
     const dx = (outWidth - dw) / 2;
     const dy = (outHeight - dh) / 2;
 
-    // Draw centered on canvas with correct mirrored coordinate dx
+    // Draw full-bleed real camera feed with true background
     ctx.drawImage(video, 0, 0, vWidth, vHeight, dx, dy, dw, dh);
     ctx.restore();
 
@@ -354,9 +356,82 @@ export const LiveMirror = () => {
         return;
       }
       capturedBlobRef.current = blob;
+      setHasReadyPhoto(true);
+      lastSareeIdRef.current = selectedSaree?.sareeId || selectedSaree?.id;
       await submitToTryOnJobAPI(blob, modelPreference);
     }, 'image/jpeg', 0.95);
   };
+
+  const lastUploadClickTimeRef = useRef(0);
+  const isFileDialogOpenRef = useRef(false);
+
+  // Single-click trigger for file dialog with debounce & double-click protection
+  const triggerFileUpload = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const now = Date.now();
+    // Block rapid double clicks within 1500ms
+    if (now - lastUploadClickTimeRef.current < 1500 || isFileDialogOpenRef.current) {
+      return;
+    }
+    lastUploadClickTimeRef.current = now;
+    isFileDialogOpenRef.current = true;
+
+    // Reset lock after 2s
+    setTimeout(() => {
+      isFileDialogOpenRef.current = false;
+    }, 2000);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle uploading custom photo from mobile or computer gallery (runs exactly 1 time)
+  const handlePhotoUpload = (e) => {
+    isFileDialogOpenRef.current = false;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    playTapSound();
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      setUploadedPhotoUrl(dataUrl);
+      setBeforePhotoUrl(dataUrl);
+      capturedBlobRef.current = file;
+      setHasReadyPhoto(true);
+      lastSareeIdRef.current = selectedSaree?.sareeId || selectedSaree?.id;
+
+      // Automatically launch AI Virtual Try-On with the uploaded photo
+      submitToTryOnJobAPI(file, modelPreference);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Auto trigger try-on when saree changes IF user already has a photo ready
+  useEffect(() => {
+    const newSareeId = selectedSaree?.sareeId || selectedSaree?.id;
+    if (
+      capturedBlobRef.current &&
+      hasReadyPhoto &&
+      lastSareeIdRef.current &&
+      lastSareeIdRef.current !== newSareeId &&
+      tryOnStatus !== 'queued' &&
+      tryOnStatus !== 'processing'
+    ) {
+      lastSareeIdRef.current = newSareeId;
+      // Small delay so UI updates first
+      setTimeout(() => {
+        submitToTryOnJobAPI(capturedBlobRef.current, modelPreference);
+      }, 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSaree]);
 
   // Clear active polling intervals
   const clearJobTimers = () => {
@@ -394,12 +469,10 @@ export const LiveMirror = () => {
       const formData = new FormData();
       formData.append('person_image', personBlob, 'customer_photo.jpg');
 
-      // PRIORITIZE CLEAN tryOnImage (BACKGROUND REMOVED)
-      const cleanGarmentUrl = selectedSaree?.tryOnImage || selectedSaree?.image || '/assets/saree_kanjivaram_red.jpg';
-      formData.append('garment_url', cleanGarmentUrl);
-      if (selectedSaree?.tryOnImage) {
-        formData.append('try_on_image_url', selectedSaree.tryOnImage);
-      }
+      // Prioritize isolated garment cloth cutout for AI try-on so it never drapes another model's face/body
+      const garmentImageUrl = selectedSaree?.tryOnImage || selectedSaree?.image || '/assets/tryon_saree-1.png';
+      formData.append('garment_url', garmentImageUrl);
+      formData.append('try_on_image_url', garmentImageUrl);
 
       const activeDrape = chosenDrapeStyle || drapeStyle || 'Nivi';
       const activeSeed = chosenSeed !== null && chosenSeed !== undefined ? chosenSeed : Math.floor(Math.random() * 999999);
@@ -450,7 +523,7 @@ export const LiveMirror = () => {
             clearJobTimers();
             activeJobIdRef.current = null;
             setAfterPhotoUrl(pollData.result_image_url);
-            setLastUsedModel(pollData.provider || 'AI Image Edit (Qwen)');
+            setLastUsedModel(pollData.provider || 'AI Virtual Try-On');
             setTryOnStatus('completed');
 
             // Save completed look to ephemeral session store
@@ -567,29 +640,60 @@ export const LiveMirror = () => {
         {/* CENTER VIEWPORT */}
         <div className="mirror-viewport-container">
           <div className="mirror-frame" id="mirror-frame">
-            {/* 1. CLEAN LIVE WEBCAM FEED (Mirrored) */}
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className={`camera-stream ${isCameraActive ? 'active' : ''}`}
-            ></video>
+            {/* 1. CLEAN LIVE WEBCAM FEED (Mirrored) OR UPLOADED PHOTO PREVIEW */}
+            {uploadedPhotoUrl ? (
+              <div className="uploaded-photo-preview-stage">
+                <img
+                  src={uploadedPhotoUrl}
+                  alt="Uploaded Look"
+                  className="uploaded-photo-preview-img"
+                />
+                <div className="uploaded-photo-top-bar">
+                  <span className="badge-uploaded-mode">
+                    <i className="fa-solid fa-cloud-arrow-up"></i> Photo Mode
+                  </span>
+                  <button
+                    className="btn-switch-back-camera"
+                    onClick={() => {
+                      playTapSound();
+                      setUploadedPhotoUrl(null);
+                      if (!isCameraActive) startCamera();
+                    }}
+                    title="Return to Live Camera"
+                  >
+                    <i className="fa-solid fa-camera"></i> {t('switch_camera') || 'Live Camera'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`camera-stream ${isCameraActive ? 'active' : ''}`}
+              ></video>
+            )}
 
             {/* 2. FULL-BODY GUIDE OUTLINE SILHOUETTE OVERLAY (GREEN WHEN WHOLE BODY VISIBLE, RED WHEN NOT) */}
             {/* 3. Camera Connecting State */}
-            {!isCameraActive && (
+            {!isCameraActive && !uploadedPhotoUrl && (
               <div className="camera-connecting-state">
                 <div className="camera-loader-ring">
                   <i className="fa-solid fa-camera"></i>
                 </div>
-                <h3>Starting Live Mirror Camera...</h3>
+                <h3>Live Mirror Camera</h3>
                 <p>
-                  {cameraError || 'Please allow camera permission in your browser to try on sarees in real time.'}
+                  {cameraError || 'Use live camera or upload any clear photo from your gallery to try on sarees.'}
                 </p>
-                <button className="btn-primary-orange" onClick={startCamera}>
-                  <i className="fa-solid fa-video"></i> Start Camera Now
-                </button>
+                <div className="camera-connecting-actions-row">
+                  <button className="btn-primary-orange" onClick={startCamera}>
+                    <i className="fa-solid fa-video"></i> Start Camera Now
+                  </button>
+                  <button type="button" className="btn-secondary-blue" onClick={triggerFileUpload}>
+                    <i className="fa-solid fa-cloud-arrow-up"></i> {t('upload_photo') || 'Upload Photo'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -611,138 +715,52 @@ export const LiveMirror = () => {
               </div>
             )}
 
-            {/* 10. Minimalist Circular Shutter Button (Image 5 style) */}
-            {isCameraActive && (
-              <div className="mirror-shutter-container">
+            {/* 10. Shutter & Upload Actions Container */}
+            <div className="mirror-shutter-container">
+              {isCameraActive && !uploadedPhotoUrl && (
                 <button
                   className="mirror-shutter-circle-btn"
                   onClick={handleCaptureClick}
                   disabled={countdown !== null || tryOnStatus === 'queued' || tryOnStatus === 'processing'}
-                  title="Capture Look"
+                  title="Capture Look from Camera"
                   aria-label="Capture Look"
                 >
                   <i className="fa-solid fa-video"></i>
+                  <span className="action-sublabel">Capture</span>
                 </button>
-              </div>
-            )}
+              )}
+
+              {/* Only show upload button when camera is active OR photo uploaded (not on "camera connecting" screen) */}
+              {(isCameraActive || uploadedPhotoUrl) && (
+                <button
+                  type="button"
+                  className="mirror-upload-action-btn"
+                  onClick={triggerFileUpload}
+                  disabled={countdown !== null || tryOnStatus === 'queued' || tryOnStatus === 'processing'}
+                  title="Upload Photo from Phone / PC"
+                  aria-label="Upload Photo"
+                >
+                  <i className="fa-solid fa-cloud-arrow-up"></i>
+                  <span>{uploadedPhotoUrl ? (t('change_photo') || 'Change Photo') : (t('upload_photo') || 'Upload Photo')}</span>
+                </button>
+              )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={handlePhotoUpload}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </div>
         </div>
 
         {/* RIGHT SIDEBAR CONTROLS */}
         <aside className="mirror-sidebar">
-          {/* Drape & Style Customizer */}
-          <div className="sidebar-panel-box style-customizer-box">
-            <div className="panel-header-row">
-              <div className="panel-heading">
-                <i className="fa-solid fa-sliders text-blue"></i>
-                <span>{t('drape_styling')}</span>
-              </div>
-              <span className="badge-blue">CatVTON Overall</span>
-            </div>
-
-            {/* Model Engine Selector */}
-            <div className="styling-group">
-              <label className="control-label">AI Try-On Model Engine</label>
-              <div className="pill-group">
-                {[
-                  { id: 'auto', label: 'Auto (Recommended)' },
-                  { id: 'local', label: '💻 Local AI Draper (Offline / Free)' },
-                  { id: 'fal_ai', label: '⚡ Fal.ai (2s Turbo)' },
-                  { id: 'image_edit', label: 'AI Drape Edit' },
-                  { id: 'catvton', label: 'CatVTON (Overall)' }
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    className={`style-chip ${modelPreference === m.id ? 'active' : ''}`}
-                    onClick={() => {
-                      playTapSound();
-                      setModelPreference(m.id);
-                    }}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Draping Style Dropdown (Nivi, Pinned Pleats, Seedha Pallu, Bengali) */}
-            <div className="styling-group">
-              <label className="control-label" htmlFor="draping-style-select">
-                <i className="fa-solid fa-vest" style={{ marginRight: '6px', color: '#FF7A1A' }}></i>
-                {t('drape_style')}
-              </label>
-              <div className="custom-select-wrapper">
-                <select
-                  id="draping-style-select"
-                  className="draping-style-dropdown"
-                  value={drapeStyle}
-                  onChange={(e) => {
-                    playTapSound();
-                    setDrapeStyle(e.target.value);
-                  }}
-                >
-                  <option value="Nivi">Nivi (Classic Pleats & Pallu over Left Shoulder)</option>
-                  <option value="Pinned Pleats">Pinned Pleats (Crisp Structured Formal Drape)</option>
-                  <option value="Seedha Pallu">Seedha Pallu (Gujarati Traditional Front Pallu)</option>
-                  <option value="Bengali">Bengali (Graceful Box Pleats & Wrap)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Blouse Contrast Swatches */}
-            <div className="styling-group">
-              <label className="control-label">{t('blouse_color')}</label>
-              <div className="swatch-row">
-                {[
-                  { hex: '#800000', name: 'Crimson Brocade' },
-                  { hex: '#1E5EFF', name: 'Royal Blue' },
-                  { hex: '#005F41', name: 'Emerald Silk' },
-                  { hex: '#D4AF37', name: 'Metallic Gold' },
-                  { hex: '#E0115F', name: 'Rani Pink' },
-                  { hex: '#0B2A5B', name: 'Deep Navy' }
-                ].map((c) => (
-                  <button
-                    key={c.hex}
-                    className={`color-swatch ${blouseColor === c.hex ? 'active' : ''}`}
-                    style={{ background: c.hex }}
-                    onClick={() => {
-                      playTapSound();
-                      setBlouseColor(c.hex);
-                      setBlouseName(c.name);
-                    }}
-                    title={c.name}
-                  />
-                ))}
-              </div>
-              <span className="subtle-swatch-name">{blouseName}</span>
-            </div>
-
-            {/* Jewelry Accents */}
-            <div className="styling-group">
-              <label className="control-label">{t('jewelry_accent')}</label>
-              <div className="jewelry-toggle-row">
-                <button
-                  className={`toggle-pill ${activeJewelry.necklace ? 'active' : ''}`}
-                  onClick={() => {
-                    playTapSound();
-                    setActiveJewelry((prev) => ({ ...prev, necklace: !prev.necklace }));
-                  }}
-                >
-                  <i className="fa-solid fa-gem"></i> <span>{t('temple_haram')}</span>
-                </button>
-                <button
-                  className={`toggle-pill ${activeJewelry.belt ? 'active' : ''}`}
-                  onClick={() => {
-                    playTapSound();
-                    setActiveJewelry((prev) => ({ ...prev, belt: !prev.belt }));
-                  }}
-                >
-                  <i className="fa-solid fa-ring"></i> <span>{t('kamarbandh')}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
           {/* Instant Saree Drawer with REAL Images */}
           <div className="sidebar-panel-box saree-drawer-box">
             <div className="panel-header-row">
@@ -755,6 +773,13 @@ export const LiveMirror = () => {
               </button>
             </div>
 
+            {hasReadyPhoto && (
+              <div className="photo-ready-banner">
+                <i className="fa-solid fa-user-check"></i>
+                <span>Your photo is ready! Click any saree to instantly try it on.</span>
+              </div>
+            )}
+
             <div className="quick-saree-carousel">
               {sarees.map((s) => {
                 const sId = s.sareeId || s.id;
@@ -763,9 +788,17 @@ export const LiveMirror = () => {
                   <div
                     key={sId}
                     className={`quick-saree-item ${isSelected ? 'active' : ''}`}
-                    onClick={() => selectSaree(s)}
+                    onClick={() => {
+                      if (hasReadyPhoto && !isSelected) {
+                        // Select saree - useEffect will auto-trigger try-on
+                        lastSareeIdRef.current = selectedSaree?.sareeId || selectedSaree?.id;
+                        selectSaree(s);
+                      } else {
+                        selectSaree(s);
+                      }
+                    }}
                   >
-                    <img src={s.tryOnImage || s.image} alt={s.name} className="quick-saree-img" />
+                    <img src={s.image || s.tryOnImage} alt={s.name} className="quick-saree-img" />
                     <div className="quick-saree-details">
                       <h4 className="quick-saree-name">{s.name}</h4>
                       <div className="quick-saree-meta">{s.origin || s.fabric}</div>
@@ -774,13 +807,23 @@ export const LiveMirror = () => {
                       </div>
                     </div>
                     <button
-                      className="quick-try-btn"
+                      className={`quick-try-btn ${hasReadyPhoto && !isSelected ? 'try-on-ready' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        selectSaree(s);
+                        if (hasReadyPhoto) {
+                          // Immediately trigger try-on with this saree
+                          lastSareeIdRef.current = selectedSaree?.sareeId || selectedSaree?.id;
+                          selectSaree(s);
+                          // If same saree re-clicked, re-run try-on manually
+                          if (isSelected && capturedBlobRef.current) {
+                            submitToTryOnJobAPI(capturedBlobRef.current, modelPreference);
+                          }
+                        } else {
+                          selectSaree(s);
+                        }
                       }}
                     >
-                      {isSelected ? 'Selected' : 'Select'}
+                      {hasReadyPhoto ? (isSelected ? '🔄 Re-Try' : '✨ Try On') : (isSelected ? 'Selected' : 'Select')}
                     </button>
                   </div>
                 );

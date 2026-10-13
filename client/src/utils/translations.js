@@ -29,7 +29,7 @@ export const TRANSLATIONS = {
     temple_haram: 'Temple Haram',
     kamarbandh: 'Ottiyanam / Belt',
     quick_drape_catalog: 'Instant Try-On Catalog',
-    view_all: 'View All (8) →',
+    view_all: 'View All →',
     curated_masterpieces: 'Handcrafted Saree Masterpieces',
     catalog_subtitle: 'Authentic pure zari weaves, heritage looms, and contemporary celebrations.',
     all_sarees: 'All Sarees',
@@ -60,7 +60,10 @@ export const TRANSLATIONS = {
     stylist_alert_msg: 'A boutique concierge has been notified to assist you at Mirror Station #1.',
     ai_stylist_active: 'AI Draper Engine v2.4 Active',
     empty_snaps_title: 'No Looks Saved Yet',
-    empty_snaps_desc: 'Try on sarees in the Live Mirror and tap "Capture Look" to build your personalized boutique lookbook!'
+    empty_snaps_desc: 'Try on sarees in the Live Mirror and tap "Capture Look" to build your personalized boutique lookbook!',
+    upload_photo: 'Upload Photo',
+    change_photo: 'Change Photo',
+    upload_desc: 'Upload a clear full-body photo from your phone or gallery for instant virtual saree try-on.'
   },
   ta: {
     welcome_subtitle: 'சொகுசு மெய்நிகர் புடவை அனுபவம். நிகழ்நேர ஏஐ கண்ணாடி மூலம் புடவைகளை அணிந்து பாருங்கள்.',
@@ -92,7 +95,7 @@ export const TRANSLATIONS = {
     temple_haram: 'கோவில் ஹாரம்',
     kamarbandh: 'ஒட்டியாணம் / பெல்ட்',
     quick_drape_catalog: 'உடனடி புடவை தேர்வு',
-    view_all: 'அனைத்தும் பார்க்க (8) →',
+    view_all: 'அனைத்தும் பார்க்க →',
     curated_masterpieces: 'கைத்தறி பட்டுப் புடவைகள்',
     catalog_subtitle: 'பாரம்பரிய காஞ்சிபுரம் மற்றும் பனாரசி தங்க ஜரிகை புடவைகளின் சங்கமம்.',
     all_sarees: 'அனைத்து புடவைகள்',
@@ -123,6 +126,9 @@ export const TRANSLATIONS = {
     stylist_alert_msg: 'மிரர் ஸ்டேஷன் #1-ல் உங்களுக்கு உதவ ஊழியர் அழைக்கப்பட்டுள்ளார்.',
     ai_stylist_active: 'ஏஐ ட்ரேப்பிங் என்ஜின் v2.4 தயார்',
     empty_snaps_title: 'படங்கள் எதுவும் இல்லை',
-    empty_snaps_desc: 'நேரடி கண்ணாடியில் புடவைகளை அணிந்து பார்த்து "படம் எடுக்கவும்" பொத்தானை அழுத்தவும்!'
+    empty_snaps_desc: 'நேரடி கண்ணாடியில் புடவைகளை அணிந்து பார்த்து "படம் எடுக்கவும்" பொத்தானை அழுத்தவும்!',
+    upload_photo: 'புகைப்படம் பதிவேற்றுக',
+    change_photo: 'வேறு புகைப்படம் மாற்றுக',
+    upload_desc: 'உங்கள் மொபைல் அல்லது கேலரியில் உள்ள தெளிவான புகைப்படத்தை பதிவேற்றி உடனே புடவை அணிந்து பாருங்கள்.'
   }
 };

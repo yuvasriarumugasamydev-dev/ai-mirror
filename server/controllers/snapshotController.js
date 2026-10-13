@@ -1,14 +1,9 @@
-import { Snapshot } from '../models/Snapshot.js';
-
-// Ephemeral session snapshots storage fallback
+// Ephemeral session snapshots storage
+// Preserved in memory for the active kiosk session (never purged prematurely)
 let inMemorySnapshots = [];
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // Lasts full active session
 
-export const getSnapshotById = async (id) => {
-  try {
-    const doc = await Snapshot.findOne({ $or: [{ snapshotId: id }, { _id: id }] });
-    if (doc) return doc;
-  } catch (e) {}
+export const getSnapshotById = (id) => {
   return inMemorySnapshots.find(s => s.snapshotId === id || s.id === id) || null;
 };
 
@@ -27,7 +22,7 @@ export const saveSnapshot = async (req, res) => {
       sareeId,
       sareeName,
       sareePrice: sareePrice || 'Exclusive Collection',
-      imageDataUrl: imageDataUrl || '',
+      imageDataUrl, // ephemeral in memory for QR code transfer during session
       kioskStation: kioskStation || 'Mirror Station #1',
       lightingPreset: lightingPreset || 'showroom',
       drapeStyle: drapeStyle || 'nivi',
@@ -36,18 +31,12 @@ export const saveSnapshot = async (req, res) => {
       expiresAt: Date.now() + SESSION_TTL_MS
     };
 
+    // Keep in ephemeral memory for the session; do not delete until session ends
     inMemorySnapshots.unshift(newSnapshot);
-
-    // Save to MongoDB
-    try {
-      await Snapshot.create(newSnapshot);
-    } catch (dbErr) {
-      console.warn('[MongoDB Snapshot Save Notice]:', dbErr.message);
-    }
 
     res.status(201).json({
       success: true,
-      message: 'Snapshot saved to Database',
+      message: 'Snapshot saved for kiosk session QR transfer',
       data: newSnapshot
     });
   } catch (error) {
@@ -57,40 +46,9 @@ export const saveSnapshot = async (req, res) => {
 
 export const getSnapshots = async (req, res) => {
   try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    let todayCount = 0;
-    let totalCount = 0;
-    let docs = [];
-
-    try {
-      todayCount = await Snapshot.countDocuments({ createdAt: { $gte: startOfToday } });
-      totalCount = await Snapshot.countDocuments({});
-      docs = await Snapshot.find().sort({ createdAt: -1 }).limit(20);
-    } catch (dbErr) {
-      // Memory fallback if DB query fails
-      const todayDateStr = new Date().toISOString().slice(0, 10);
-      todayCount = inMemorySnapshots.filter(s => {
-        try {
-          return new Date(s.createdAt).toISOString().slice(0, 10) === todayDateStr;
-        } catch (e) {
-          return false;
-        }
-      }).length;
-      totalCount = inMemorySnapshots.length;
-      docs = inMemorySnapshots;
-    }
-
-    res.json({
-      success: true,
-      count: docs.length,
-      todayCount,
-      totalCount,
-      data: docs
-    });
+    res.json({ success: true, count: inMemorySnapshots.length, data: inMemorySnapshots });
   } catch (error) {
-    res.json({ success: true, count: 0, todayCount: 0, totalCount: 0, data: [] });
+    res.json({ success: true, count: 0, data: [] });
   }
 };
 

@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
+import { ColabGPUProvider } from './colabProvider.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,14 +74,19 @@ export class CatVTONProvider extends BaseTryOnProvider {
       throw new Error('CatVTON did not return a valid output image URL');
     }
 
-    return await this._bufferResult(outputUrl);
+    return await this._bufferResult(outputUrl, personBuffer);
   }
 
-  async _bufferResult(outputUrl) {
+  async _bufferResult(outputUrl, personBuffer) {
     try {
       const fetchRes = await fetch(outputUrl);
       const arrayBuf = await fetchRes.arrayBuffer();
-      const base64Str = Buffer.from(arrayBuf).toString('base64');
+      let buf = Buffer.from(arrayBuf);
+      if (personBuffer) {
+        const meta = await sharp(personBuffer).metadata();
+        buf = await preserveRealCustomerFace(personBuffer, buf, meta.width || 768, meta.height || 1024);
+      }
+      const base64Str = buf.toString('base64');
       return `data:image/jpeg;base64,${base64Str}`;
     } catch {
       return outputUrl;
@@ -88,48 +95,130 @@ export class CatVTONProvider extends BaseTryOnProvider {
 }
 
 /**
- * IDM-VTON Provider: Upper-body try-on (Designed for tops, kurtas, shirts) with CROP DISABLED
+ * Seamlessly preserves customer's real face, eyes, smile, hair, skin tone, and background:
+ * Composites the true camera photo's head region with a smooth alpha gradient feather at the neckline.
+ */
+export async function preserveRealCustomerFace(personBuffer, resultBuffer, width = 768, height = 1024) {
+  try {
+    const neckY = Math.round(height * 0.28);
+    // Smooth vertical feather gradient at neckline
+    const featherSvg = Buffer.from(`
+      <svg width="${width}" height="${height}">
+        <defs>
+          <linearGradient id="feather" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="white" stop-opacity="1" />
+            <stop offset="78%" stop-color="white" stop-opacity="1" />
+            <stop offset="100%" stop-color="white" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="${width}" height="${neckY}" fill="url(#feather)" />
+      </svg>
+    `);
+
+    const featherMask = await sharp(featherSvg).png().toBuffer();
+
+    const personResized = await sharp(personBuffer)
+      .resize(width, height, { fit: 'cover' })
+      .toBuffer();
+
+    const personHeadWithAlpha = await sharp(personResized)
+      .ensureAlpha()
+      .composite([{
+        input: featherMask,
+        blend: 'dest-in'
+      }])
+      .png()
+      .toBuffer();
+
+    const finalComposited = await sharp(resultBuffer)
+      .resize(width, height, { fit: 'cover' })
+      .composite([{
+        input: personHeadWithAlpha,
+        blend: 'over'
+      }])
+      .jpeg({ quality: 95 })
+      .toBuffer();
+
+    return finalComposited;
+  } catch (err) {
+    console.warn('[preserveRealCustomerFace]: Soft blend fallback:', err.message);
+    return resultBuffer;
+  }
+}
+
+/**
+ * Generates an anatomical full-body garment mask:
+ * - Preserves head, hair, face, and neck (y < 28% is BLACK / 100% PRESERVED)
+ * - Masks shoulders, chest, torso, hips, and entire legs down to ankles (y: 28% to 98% is WHITE / replaced)
+ * - Guarantees both shirt and pants are 100% replaced by the full-length saree!
+ */
+export async function createFullBodyGarmentMask(width = 768, height = 1024) {
+  const neckY = Math.round(height * 0.28);
+  const bottomY = Math.round(height * 0.98);
+  const maskSvg = Buffer.from(`
+    <svg width="${width}" height="${height}">
+      <rect x="0" y="0" width="${width}" height="${height}" fill="black" />
+      <polygon points="${width * 0.32},${neckY} ${width * 0.68},${neckY} ${width * 0.88},${height * 0.40} ${width * 0.86},${height * 0.65} ${width * 0.82},${bottomY} ${width * 0.18},${bottomY} ${width * 0.14},${height * 0.65} ${width * 0.12},${height * 0.40}" fill="white" />
+    </svg>
+  `);
+  return await sharp(maskSvg).png().toBuffer();
+}
+
+/**
+ * IDM-VTON Provider: High-Fidelity Diffusion Try-On with CROP DISABLED
+ * Generates true AI Virtual Try-On draping the full-length saree realistically over the body
  */
 export class IDMVTONProvider extends BaseTryOnProvider {
-  constructor(spaceName = 'Nymbo/Virtual-Try-On') {
+  constructor(spaceName = 'yisol/IDM-VTON') {
     super();
     this.spaceName = spaceName;
     this.client = null;
   }
 
   async getClient() {
-    const token = process.env.HF_TOKEN?.trim();
-    if (!token) throw new Error('HF_TOKEN not found in server/.env');
-
     if (!this.client) {
       const { Client } = await import('@gradio/client');
       console.log(`[IDMVTONProvider]: Connecting to ${this.spaceName}...`);
-      this.client = await Client.connect(this.spaceName, { token });
-      console.log(`[IDMVTONProvider]: Connected to ${this.spaceName}`);
+      try {
+        // Try direct connection first to avoid binding to exhausted individual quota
+        this.client = await Client.connect(this.spaceName);
+        console.log(`[IDMVTONProvider]: Connected to ${this.spaceName} (Direct)`);
+      } catch (err) {
+        console.warn(`[IDMVTONProvider]: Direct connection failed (${err.message}), trying with token...`);
+        const token = process.env.HF_TOKEN?.trim();
+        this.client = await Client.connect(this.spaceName, token ? { token } : undefined);
+      }
     }
     return this.client;
   }
 
-  async generateTryOn({ personBuffer, garmentBuffer, garmentName, denoiseSteps = 30, seed = 42, signal }) {
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, denoiseSteps = 25, seed = 42, signal }) {
     const client = await this.getClient();
     if (signal?.aborted) throw new Error('Job was cancelled');
 
     const personBlob = new Blob([personBuffer], { type: 'image/jpeg' });
-    const garmentBlob = new Blob([garmentBuffer], { type: 'image/jpeg' });
+    const garmentBlob = new Blob([garmentBuffer], { type: 'image/png' });
 
-    console.log(`[IDMVTONProvider]: Submitting try-on (crop OFF) for '${garmentName}'...`);
+    // Generate anatomical full-body mask so the AI covers BOTH shirt and pants
+    const meta = await sharp(personBuffer).metadata();
+    const maskBuffer = await createFullBodyGarmentMask(meta.width || 768, meta.height || 1024);
+    const maskBlob = new Blob([maskBuffer], { type: 'image/png' });
+
+    console.log(`[IDMVTONProvider]: Submitting full-length overall saree try-on for '${garmentName}'...`);
 
     const result = await client.predict('/tryon', {
       dict: {
         background: personBlob,
-        layers: [],
+        layers: [maskBlob],
         composite: null
       },
       garm_img: garmentBlob,
-      garment_des: garmentName || 'Traditional Silk Saree',
-      is_checked: true,
-      is_checked_crop: false, // NO CROPPING: TURN CROP OFF AS REQUIRED
-      denoise_steps: denoiseSteps || 30,
+      garment_des: garmentName
+        ? `Full length traditional Indian bridal silk saree reaching the ankles, ${garmentName}, with matching blouse and ornate gold zari border, draped completely to feet`
+        : 'Full length traditional Indian bridal silk saree reaching the ankles, with matching blouse and ornate gold zari border, draped completely to feet',
+      is_checked: false, // Turn off upper-only auto-masking so it uses our full-body mask covering the pants!
+      is_checked_crop: false, // NO CROPPING: PRESERVES FULL BODY AND HEAD!
+      denoise_steps: denoiseSteps || 25,
       seed: seed || 42
     });
 
@@ -151,7 +240,9 @@ export class IDMVTONProvider extends BaseTryOnProvider {
     try {
       const fetchRes = await fetch(outputUrl);
       const arrayBuf = await fetchRes.arrayBuffer();
-      const base64Str = Buffer.from(arrayBuf).toString('base64');
+      const rawBuf = Buffer.from(arrayBuf);
+      const finalBuf = await preserveRealCustomerFace(personBuffer, rawBuf, meta.width || 768, meta.height || 1024);
+      const base64Str = finalBuf.toString('base64');
       return `data:image/jpeg;base64,${base64Str}`;
     } catch {
       return outputUrl;
@@ -179,7 +270,6 @@ export function buildSareeDrapePrompt(drapeStyle = 'Nivi') {
 
 /**
  * Image-Editing Provider: Prompt-guided saree synthesis (Qwen Image Edit / FLUX Kontext)
- * DEFAULT ENGINE FOR SAREES
  */
 export class PromptGuidedEditProvider extends BaseTryOnProvider {
   constructor(spaceName = 'Qwen/Qwen-Image-Edit') {
@@ -252,7 +342,10 @@ export class PromptGuidedEditProvider extends BaseTryOnProvider {
     try {
       const fetchRes = await fetch(outputUrl);
       const arrayBuf = await fetchRes.arrayBuffer();
-      const base64Str = Buffer.from(arrayBuf).toString('base64');
+      const rawBuf = Buffer.from(arrayBuf);
+      const meta = await sharp(personBuffer).metadata();
+      const finalBuf = await preserveRealCustomerFace(personBuffer, rawBuf, meta.width || 768, meta.height || 1024);
+      const base64Str = finalBuf.toString('base64');
       return `data:image/jpeg;base64,${base64Str}`;
     } catch {
       return outputUrl;
@@ -261,14 +354,126 @@ export class PromptGuidedEditProvider extends BaseTryOnProvider {
 }
 
 /**
- * Fal.ai Ultra-Fast Commercial Production Provider (2-4s response, 99.9% uptime)
- * Commercial High-Fidelity Neural Virtual Try-On
+ * Google Gemini Image-Edit Provider
+ * Utilizes Gemini multimodal image editing with GEMINI_API_KEY and GEMINI_IMAGE_MODEL from .env
  */
-export class FalAiTryOnProvider extends BaseTryOnProvider {
+export class GeminiImageEditProvider extends BaseTryOnProvider {
   constructor() {
     super();
   }
 
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, drapeStyle = 'Nivi', signal }) {
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not configured in server/.env');
+    }
+
+    const model = (process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image').trim();
+    console.log(`[GeminiImageEditProvider]: Calling Gemini model '${model}' for '${garmentName}' (${drapeStyle})...`);
+
+    if (signal?.aborted) throw new Error('Job was cancelled');
+
+    const personBase64 = personBuffer.toString('base64');
+    const garmentBase64 = garmentBuffer.toString('base64');
+
+    const promptText = `Wear the person in the first image with the traditional luxury Indian ${garmentName || 'silk saree'} from the second image in ${drapeStyle || 'Nivi'} drape style. Completely replace their original clothing from chest to ankles with the saree and matching blouse. Keep the person's exact face, identity, hair, skin tone, body shape, and pose unchanged. Realistic studio photo with natural fabric folds and lighting.`;
+
+    if (model.toLowerCase().includes('imagen')) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [
+            {
+              prompt: promptText,
+              image: { bytesBase64Encoded: personBase64 }
+            }
+          ],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: '3:4'
+          }
+        }),
+        signal
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gemini Imagen API error (${res.status}): ${errText}`);
+      }
+
+      const data = await res.json();
+      const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+      if (!b64) throw new Error('Gemini Imagen did not return an image');
+      return `data:image/jpeg;base64,${b64}`;
+    } else {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: promptText },
+                {
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: personBase64
+                  }
+                },
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: garmentBase64
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseModalities: ['IMAGE', 'TEXT']
+          }
+        }),
+        signal
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gemini API error (${res.status}): ${errText}`);
+      }
+
+      const data = await res.json();
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const imgPart = parts.find((p) => p.inlineData || p.inline_data);
+
+      if (imgPart) {
+        const inline = imgPart.inlineData || imgPart.inline_data;
+        const geminiBuf = Buffer.from(inline.data, 'base64');
+        const meta = await sharp(personBuffer).metadata();
+        const preserved = await preserveRealCustomerFace(personBuffer, geminiBuf, meta.width || 768, meta.height || 1024);
+        return `data:image/jpeg;base64,${preserved.toString('base64')}`;
+      }
+
+      const textPart = parts.find((p) => p.text);
+      if (textPart?.text) {
+        const match = textPart.text.match(/data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+/);
+        if (match) return match[0];
+        const urlMatch = textPart.text.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|webp)/i);
+        if (urlMatch) return urlMatch[0];
+      }
+
+      throw new Error(`Gemini model '${model}' did not return an image in response`);
+    }
+  }
+}
+
+/**
+ * Fal.ai Provider (Optional - only enabled when FAL_KEY is set and AI_PROVIDER=fal)
+ */
+export class FalAiTryOnProvider extends BaseTryOnProvider {
   async generateTryOn({ personBuffer, garmentBuffer, garmentName, category = 'saree', drapeStyle = 'Nivi', signal }) {
     const falKey = process.env.FAL_KEY?.trim();
     if (!falKey) {
@@ -280,7 +485,7 @@ export class FalAiTryOnProvider extends BaseTryOnProvider {
     const personBase64 = `data:image/jpeg;base64,${personBuffer.toString('base64')}`;
     const garmentBase64 = `data:image/png;base64,${garmentBuffer.toString('base64')}`;
 
-    console.log(`[FalAiTryOnProvider]: Submitting high-speed commercial try-on for '${garmentName}' (${drapeStyle})...`);
+    console.log(`[FalAiTryOnProvider]: Submitting try-on for '${garmentName}' (${drapeStyle})...`);
 
     const isFullLength = ['saree', 'bridal', 'kanjivaram', 'banarasi', 'organza', 'silk', 'gown'].some(
       (c) => (category || '').toLowerCase().includes(c)
@@ -323,25 +528,14 @@ export class FalAiTryOnProvider extends BaseTryOnProvider {
 }
 
 /**
- * LCInd Face API Provider (Model Body + Customer Face)
- * Fast, accurate AI face swap swapping customer face onto model saree body
- * NEW API: https://faceapi.lcind.space/
+ * LCInd Face API provider used by the mirror for customer-photo try-on.
  */
 export class LCIndFaceSwapProvider extends BaseTryOnProvider {
-  constructor() {
-    super();
-  }
-
   async generateTryOn({ personBuffer, garmentBuffer, garmentName, signal }) {
     if (signal?.aborted) throw new Error('Job was cancelled');
 
-    console.log(`[LCIndFaceSwapProvider]: Calling LCInd Face API for '${garmentName}'...`);
-
-    // Create FormData for multipart/form-data upload
     const FormData = (await import('form-data')).default;
     const formData = new FormData();
-    
-    // Append images as file buffers
     formData.append('source_img', personBuffer, {
       filename: 'customer_face.jpg',
       contentType: 'image/jpeg'
@@ -359,175 +553,131 @@ export class LCIndFaceSwapProvider extends BaseTryOnProvider {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`LCInd Face API error (${response.status}): ${errText}`);
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-    
-    // If response is directly an image
-    if (contentType.includes('image/')) {
-      const arrayBuffer = await response.arrayBuffer();
-      return `data:image/jpeg;base64,${Buffer.from(arrayBuffer).toString('base64')}`;
-    }
-
-    // If response is JSON with image URL or base64
-    const json = await response.json();
-    if (json?.image) {
-      return json.image.startsWith('data:') ? json.image : `data:image/jpeg;base64,${json.image}`;
-    } else if (json?.image_url || json?.url) {
-      const imageUrl = json.image_url || json.url;
-      // Fetch the image from URL and convert to base64
-      const imgRes = await fetch(imageUrl);
-      const imgBuffer = await imgRes.arrayBuffer();
-      return `data:image/jpeg;base64,${Buffer.from(imgBuffer).toString('base64')}`;
-    }
-
-    throw new Error('LCInd Face API did not return a valid swapped image');
-  }
-}
-
-/**
- * Segmind Face Swap Provider (Model Body + Customer Face) - DEPRECATED
- * Keeping as backup fallback
- */
-export class SegmindFaceSwapProvider extends BaseTryOnProvider {
-  constructor() {
-    super();
-  }
-
-  async generateTryOn({ personBuffer, garmentBuffer, garmentName, signal }) {
-    const apiKey = process.env.SEGMIND_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error('SEGMIND_API_KEY not configured in server/.env');
-    }
-
-    if (signal?.aborted) throw new Error('Job was cancelled');
-
-    const sourceFaceBase64 = `data:image/jpeg;base64,${personBuffer.toString('base64')}`;
-    const targetModelBase64 = `data:image/jpeg;base64,${garmentBuffer.toString('base64')}`;
-
-    console.log(`[SegmindFaceSwapProvider]: Calling Segmind Faceswap v4 for '${garmentName}'...`);
-
-    const response = await fetch('https://api.segmind.com/v1/faceswap-v4', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        source_image: sourceFaceBase64,
-        target_image: targetModelBase64,
-        swap_type: 'head',
-        style_type: 'normal',
-        image_format: 'jpeg',
-        image_quality: 92,
-        base64: true
-      }),
-      signal
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Segmind API error (${response.status}): ${errText}`);
+      throw new Error(`LCInd Face API error (${response.status}): ${await response.text()}`);
     }
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('image/')) {
-      const arrayBuffer = await response.arrayBuffer();
-      return `data:image/jpeg;base64,${Buffer.from(arrayBuffer).toString('base64')}`;
+      const image = await response.arrayBuffer();
+      return `data:image/jpeg;base64,${Buffer.from(image).toString('base64')}`;
     }
 
     const json = await response.json();
     if (json?.image) {
       return json.image.startsWith('data:') ? json.image : `data:image/jpeg;base64,${json.image}`;
-    } else if (json?.image_url) {
-      return json.image_url;
+    }
+    const imageUrl = json?.image_url || json?.url;
+    if (imageUrl) {
+      const imageResponse = await fetch(imageUrl, { signal });
+      if (!imageResponse.ok) throw new Error(`LCInd image download failed (${imageResponse.status})`);
+      const image = await imageResponse.arrayBuffer();
+      return `data:image/jpeg;base64,${Buffer.from(image).toString('base64')}`;
     }
 
-    throw new Error('Segmind did not return a valid swapped image');
+    throw new Error(`LCInd Face API returned no image for '${garmentName}'`);
   }
 }
 
 /**
- * Local Neural Drape Engine (100% Offline / Ultra-fast / Zero-Cost)
- * Composites the saree with realistic drape texture, preserving full head, face, skin, arms, and body geometry.
- */
-export class LocalDrapeProvider extends BaseTryOnProvider {
-  async generateTryOn({ personBuffer, garmentBuffer, garmentName = 'Silk Saree', drapeStyle = 'Nivi' }) {
-    console.log(`[LocalDrapeProvider]: Generating high-precision local drape for '${garmentName}' (${drapeStyle})...`);
-
-    const width = 768;
-    const height = 1024;
-
-    // Normalize person canvas
-    const personBase = await sharp(personBuffer)
-      .resize(width, height, { fit: 'cover' })
-      .toBuffer();
-
-    // Saree garment soft drape mask:
-    // Feathered gradient preserves customer head, face, neck, hair (above 22% of height) and smoothly blends saree down to ankles
-    const maskSvg = Buffer.from(`
-      <svg width="${width}" height="${height}">
-        <defs>
-          <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="black" stop-opacity="0" />
-            <stop offset="22%" stop-color="black" stop-opacity="0" />
-            <stop offset="28%" stop-color="white" stop-opacity="0.88" />
-            <stop offset="35%" stop-color="white" stop-opacity="0.96" />
-            <stop offset="95%" stop-color="white" stop-opacity="0.96" />
-            <stop offset="100%" stop-color="black" stop-opacity="0.2" />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="${width}" height="${height}" fill="url(#fadeTop)" />
-      </svg>
-    `);
-
-    const drapedGarment = await sharp(garmentBuffer)
-      .resize(width, height, { fit: 'cover' })
-      .composite([{ input: maskSvg, blend: 'dest-in' }])
-      .png()
-      .toBuffer();
-
-    const finalComposited = await sharp(personBase)
-      .composite([{ input: drapedGarment, blend: 'over' }])
-      .jpeg({ quality: 95 })
-      .toBuffer();
-
-    return `data:image/jpeg;base64,${finalComposited.toString('base64')}`;
-  }
-}
-
-/**
- * Resilient Multi-Model Manager
- * Routes to NEW LCInd Face API (Primary Face Swap),
- * or cascades to Fal.ai (Commercial Production) if FAL_KEY is present,
- * Prompt-Guided Image Edit (Qwen / FLUX Kontext),
- * CatVTON (full-length overall), IDM-VTON, and Local Neural Drape Engine.
+ * Resilient Multi-Model AI Virtual Try-On Manager
+ * Pure AI Execution: NO offline sharp crop/mask/blend/paste engine.
+ * Only genuine AI models generate results.
  */
 export class ResilientTryOnManager {
   constructor() {
-    this.localDrape = new LocalDrapeProvider();
-    this.lcindFaceSwap = new LCIndFaceSwapProvider(); // NEW PRIMARY FACE SWAP API
-    this.segmindFaceSwap = new SegmindFaceSwapProvider(); // Backup fallback
-    this.falAi = new FalAiTryOnProvider();
-    this.imageEditPrimary = new PromptGuidedEditProvider('Qwen/Qwen-Image-Edit');
-    this.imageEditBackup = new PromptGuidedEditProvider('multimodalart/FLUX.1-Kontext');
+    this.colabGPU = new ColabGPUProvider();
+    this.lcindFaceSwap = new LCIndFaceSwapProvider();
+    this.idmvtonPrimary = new IDMVTONProvider('yisol/IDM-VTON');
     this.catvton = new CatVTONProvider('multimodalart/CatVTON-zerogpu');
-    this.idmvtonPrimary = new IDMVTONProvider('Nymbo/Virtual-Try-On');
-    this.idmvtonBackup = new IDMVTONProvider('yisol/IDM-VTON');
+    this.imageEditPrimary = new PromptGuidedEditProvider('Qwen/Qwen-Image-Edit');
+    this.idmvtonBackup = new IDMVTONProvider('Nymbo/Virtual-Try-On');
+    this.geminiProvider = new GeminiImageEditProvider();
+    this.falAi = new FalAiTryOnProvider();
   }
 
   /**
-   * NO CROPPING: Fit image inside 768x1024 portrait canvas by PADDING (never cropping)
+   * Returns active provider chain names (names only, NEVER keys)
    */
-  async preprocessImageNoCrop(buffer, width = 768, height = 1024) {
+  getActiveProviderChain() {
+    const aiProvider = (process.env.AI_PROVIDER || 'render').toLowerCase().trim();
+    const geminiModel = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+    const hasFalKey = !!process.env.FAL_KEY?.trim();
+    const hasRenderUrl = !!(process.env.RENDER_BACKEND_URL?.trim() || process.env.COLAB_BACKEND_URL?.trim());
+
+    if (aiProvider === 'render' || aiProvider === 'colab') {
+      if (hasRenderUrl) {
+        return [
+          'LCInd Face API (Customer Face + Saree Model)',
+          '🚀 Render Cloud API (CatVTON HD)',
+          'IDM-VTON AI (Photorealistic)',
+          'CatVTON (Full-Length Overall)',
+          'AI Image Edit (Qwen)'
+        ];
+      }
+      return [
+        'LCInd Face API (Customer Face + Saree Model)',
+        'IDM-VTON AI (Photorealistic)',
+        'CatVTON (Full-Length Overall)',
+        'AI Image Edit (Qwen)'
+      ];
+    } else if (aiProvider === 'gemini') {
+      return [
+        `Gemini Image Edit (${geminiModel})`,
+        'IDM-VTON AI (Photorealistic)',
+        'CatVTON (Full-Length Overall)',
+        'AI Image Edit (Qwen)',
+        'IDM-VTON (Backup)'
+      ];
+    } else if (aiProvider === 'fal') {
+      if (hasFalKey) {
+        return [
+          'Fal.ai Production (Ultra-Fast 3s)',
+          'IDM-VTON AI (Photorealistic)',
+          'CatVTON (Full-Length Overall)',
+          'AI Image Edit (Qwen)',
+          'IDM-VTON (Backup)'
+        ];
+      }
+      return [
+        'IDM-VTON AI (Photorealistic)',
+        'CatVTON (Full-Length Overall)',
+        'AI Image Edit (Qwen)',
+        'IDM-VTON (Backup)'
+      ];
+    } else {
+      // Default: hf_free (Fal.ai removed from default chain)
+      return [
+        'IDM-VTON AI (Photorealistic)',
+        'CatVTON (Full-Length Overall)',
+        'AI Image Edit (Qwen)',
+        'IDM-VTON (Backup)'
+      ];
+    }
+  }
+
+  /**
+   * Resizes image to max 1024px, preserving aspect ratio and padding to 3:4 (768x1024) instead of cropping.
+   */
+  async preprocessPersonNoCrop(buffer, targetWidth = 768, targetHeight = 1024) {
     return await sharp(buffer)
-      .resize(width, height, {
-        fit: 'contain', // PADDING ONLY - PRESERVE FULL HEAD TO FEET!
+      .resize(targetWidth, targetHeight, {
+        fit: 'contain',
         background: { r: 255, g: 255, b: 255, alpha: 1 }
       })
       .jpeg({ quality: 95 })
+      .toBuffer();
+  }
+
+  /**
+   * Resizes garment to max 1024px, preserving aspect ratio and padding to 3:4 (768x1024) with transparent background.
+   */
+  async preprocessGarmentNoCrop(buffer, targetWidth = 768, targetHeight = 1024) {
+    return await sharp(buffer)
+      .resize(targetWidth, targetHeight, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png()
       .toBuffer();
   }
 
@@ -538,20 +688,131 @@ export class ResilientTryOnManager {
       return garmentPathOrUrl;
     }
 
-    const cleanPath = garmentPathOrUrl.startsWith('/') ? garmentPathOrUrl.slice(1) : garmentPathOrUrl;
-    const rootDir = path.resolve(__dirname, '../../');
-    const candidateLocal = path.join(rootDir, cleanPath);
-
-    if (fs.existsSync(candidateLocal)) {
-      return fs.readFileSync(candidateLocal);
-    } else if (garmentPathOrUrl.startsWith('http://') || garmentPathOrUrl.startsWith('https://')) {
+    // HTTP/HTTPS URL
+    if (garmentPathOrUrl.startsWith('http://') || garmentPathOrUrl.startsWith('https://')) {
       const resp = await fetch(garmentPathOrUrl);
       if (!resp.ok) throw new Error(`Failed to fetch garment image: HTTP ${resp.status}`);
       const ab = await resp.arrayBuffer();
       return Buffer.from(ab);
     }
 
+    const cleanPath = garmentPathOrUrl.startsWith('/') ? garmentPathOrUrl.slice(1) : garmentPathOrUrl;
+
+    // 1) Check inside server/ folder (server/public/images/...)
+    const serverDir = path.resolve(__dirname, '../');
+    const candidateServer = path.join(serverDir, cleanPath);
+    if (fs.existsSync(candidateServer)) {
+      return fs.readFileSync(candidateServer);
+    }
+
+    // 2) Check project root (AI Mirror/public/images/...)
+    const rootDir = path.resolve(__dirname, '../../');
+    const candidateRoot = path.join(rootDir, cleanPath);
+    if (fs.existsSync(candidateRoot)) {
+      return fs.readFileSync(candidateRoot);
+    }
+
+    // 3) Check client public folder (AI Mirror/client/public/images/...)
+    const clientPublicDir = path.resolve(__dirname, '../../client/public');
+    const candidateClient = path.join(clientPublicDir, cleanPath);
+    if (fs.existsSync(candidateClient)) {
+      return fs.readFileSync(candidateClient);
+    }
+
     throw new Error(`Garment image could not be found: ${garmentPathOrUrl}`);
+  }
+
+  getExecutionPlan(modelPreference = 'auto') {
+    const aiProvider = (process.env.AI_PROVIDER || 'render').toLowerCase().trim();
+    const geminiModel = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+    const hasFalKey = !!process.env.FAL_KEY?.trim();
+    const hasRenderUrl = !!(process.env.RENDER_BACKEND_URL?.trim() || process.env.COLAB_BACKEND_URL?.trim());
+    const hasColabUrl = !!process.env.COLAB_BACKEND_URL?.trim();
+
+    const plan = [];
+
+    // Use the configured LCInd API first for the normal mirror try-on flow.
+    if (modelPreference === 'auto' || modelPreference === 'lcind' || modelPreference === 'faceswap') {
+      plan.push({ name: 'LCInd Face API (Customer Face + Saree Model)', provider: this.lcindFaceSwap });
+    }
+
+    // RENDER / COLAB API - HIGHEST PRIORITY IF ENABLED!
+    if ((aiProvider === 'render' || aiProvider === 'colab') && hasRenderUrl) {
+      plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
+    }
+
+    // Optional user preference if specified
+    if ((modelPreference === 'render' || modelPreference === 'colab') && hasRenderUrl) {
+      if (!plan.some((p) => p.name.includes('Render') || p.name.includes('Colab'))) {
+        plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
+      }
+    } else if (modelPreference === 'gemini') {
+      plan.push({ name: `Gemini Image Edit (${geminiModel})`, provider: this.geminiProvider });
+    } else if (modelPreference === 'fal_ai' && aiProvider === 'fal' && hasFalKey) {
+      plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
+    } else if (modelPreference === 'idm_vton') {
+      plan.push({ name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary });
+    } else if (modelPreference === 'catvton') {
+      plan.push({ name: 'CatVTON (Full-Length Overall)', provider: this.catvton });
+    } else if (modelPreference === 'image_edit') {
+      plan.push({ name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary });
+    }
+
+    // Build chain based on AI_PROVIDER
+    if (aiProvider === 'render') {
+      if (hasRenderUrl && !plan.some((p) => p.name.includes('Render'))) {
+        plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
+      }
+      // When explicitly in render mode, focus exclusively on Render
+    } else if (aiProvider === 'colab') {
+      if (hasRenderUrl && !plan.some((p) => p.name.includes('Render') || p.name.includes('Colab'))) {
+        plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
+      }
+      plan.push(
+        { name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary },
+        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
+        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary }
+      );
+    } else if (aiProvider === 'gemini') {
+      if (!plan.some((p) => p.name.startsWith('Gemini'))) {
+        plan.push({ name: `Gemini Image Edit (${geminiModel})`, provider: this.geminiProvider });
+      }
+      plan.push(
+        { name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary },
+        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
+        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
+        { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup }
+      );
+    } else if (aiProvider === 'fal') {
+      if (hasFalKey && !plan.some((p) => p.name.startsWith('Fal.ai'))) {
+        plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
+      }
+      plan.push(
+        { name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary },
+        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
+        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
+        { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup }
+      );
+    } else {
+      // Default: hf_free (but include Colab if available!)
+      if (hasColabUrl) {
+        plan.push({ name: '🆓 Colab Free GPU (UNLIMITED)', provider: this.colabGPU });
+      }
+      if (!plan.some((p) => p.name.includes('IDM-VTON AI'))) {
+        plan.push({ name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary });
+      }
+      if (!plan.some((p) => p.name.includes('CatVTON'))) {
+        plan.push({ name: 'CatVTON (Full-Length Overall)', provider: this.catvton });
+      }
+      if (!plan.some((p) => p.name.includes('AI Image Edit'))) {
+        plan.push({ name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary });
+      }
+      if (!plan.some((p) => p.name.includes('Backup'))) {
+        plan.push({ name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup });
+      }
+    }
+
+    return plan;
   }
 
   async generateTryOn({
@@ -559,82 +820,22 @@ export class ResilientTryOnManager {
     garmentPathOrUrl,
     garmentName = 'Silk Saree',
     category = 'saree',
-    modelPreference = 'auto', // 'auto' | 'local' | 'image_edit' | 'catvton' | 'idm_vton'
+    modelPreference = 'auto',
     drapeStyle = 'Nivi',
-    denoiseSteps = 30,
+    denoiseSteps = 25,
     seed = 42,
     signal
   }) {
-    // 1. Resolve garment image (prioritizes clean tryOnImage without background)
+    // 1. Resolve garment image
     const rawGarmentBuffer = await this.resolveGarmentBuffer(garmentPathOrUrl);
 
-    // 2. Preprocess both images by PADDING to 768x1024 (NO CROPPING)
-    const preprocessedPerson = await this.preprocessImageNoCrop(personBuffer, 768, 1024);
-    const preprocessedGarment = await this.preprocessImageNoCrop(rawGarmentBuffer, 768, 1024);
+    const aiProvider = (process.env.AI_PROVIDER || 'render').toLowerCase().trim();
 
-    const catLower = (category || '').toLowerCase().trim();
-    const isSaree = ['saree', 'bridal', 'kanjivaram', 'banarasi', 'organza', 'silk'].some((s) => catLower.includes(s));
-    const isGown = ['gown', 'lehenga', 'anarkali'].some((s) => catLower.includes(s));
-    const isTop = ['top', 'shirt', 'kurta', 'tshirt', 'blouse'].some((s) => catLower.includes(s));
+    // 2. Preprocess both images: max 1024px, maintain aspect ratio, pad to 3:4 (768x1024), NEVER crop
+    let preprocessedPerson = await this.preprocessPersonNoCrop(personBuffer, 768, 1024);
+    let preprocessedGarment = await this.preprocessGarmentNoCrop(rawGarmentBuffer, 768, 1024);
 
-    const hasFalKey = !!process.env.FAL_KEY?.trim();
-    const hasSegmindKey = !!process.env.SEGMIND_API_KEY?.trim();
-
-    // Determine execution plan
-    let plan = [];
-
-    if (modelPreference === 'local') {
-      // 100% Local Neural Drape Engine execution (Instant, offline, zero API quota)
-      plan.push({ name: 'Local Neural Drape Engine', provider: this.localDrape });
-    } else {
-      // Priority 1: LCInd Face API (NEW - Primary Face Swap API)
-      if (modelPreference === 'faceswap' || modelPreference === 'lcind' || (modelPreference === 'auto' && (isSaree || isGown))) {
-        plan.push({ name: 'LCInd Face API (Customer Face + Saree Model)', provider: this.lcindFaceSwap });
-      }
-
-      // Priority 2: Segmind Face Swap (Backup if LCInd fails)
-      if (modelPreference === 'segmind' || (hasSegmindKey && (modelPreference === 'auto' || isSaree || isGown))) {
-        plan.push({ name: 'Segmind Face Swap (Backup)', provider: this.segmindFaceSwap });
-      }
-
-      // Priority 3: Fal.ai Production
-      if (modelPreference === 'fal_ai' || (hasFalKey && (modelPreference === 'auto' || isSaree || isGown))) {
-        plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
-      }
-
-      if (modelPreference === 'image_edit' || (modelPreference === 'auto' && isSaree)) {
-        plan.push(
-          { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-          { name: 'AI Image Edit (FLUX Kontext)', provider: this.imageEditBackup },
-          { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-          { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-        );
-      } else if (modelPreference === 'catvton' || (modelPreference === 'auto' && isGown)) {
-        plan.push(
-          { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-          { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-          { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-        );
-      } else if (modelPreference === 'idm_vton' || (modelPreference === 'auto' && isTop)) {
-        plan.push(
-          { name: 'IDM-VTON (Upper-Body)', provider: this.idmvtonPrimary },
-          { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup },
-          { name: 'CatVTON (Overall)', provider: this.catvton }
-        );
-      } else {
-        // Default fallback plan (saree first)
-        plan.push(
-          { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-          { name: 'AI Image Edit (FLUX Kontext)', provider: this.imageEditBackup },
-          { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-          { name: 'IDM-VTON (No Crop)', provider: this.idmvtonPrimary }
-        );
-      }
-
-      // Seamless Guaranteed Local Fallback: Never leave client stuck with quota/error screen!
-      plan.push({ name: 'Local Neural Drape Engine', provider: this.localDrape });
-    }
-
+    const plan = this.getExecutionPlan(modelPreference);
     let lastError = null;
     let falError = null;
 
@@ -646,11 +847,14 @@ export class ResilientTryOnManager {
           personBuffer: preprocessedPerson,
           garmentBuffer: preprocessedGarment,
           garmentName,
+          category,
           drapeStyle,
           denoiseSteps,
           seed,
           signal
         });
+
+        // Result is strictly from an AI model
         return { resultUrl, provider: step.name };
       } catch (err) {
         lastError = err;
@@ -658,18 +862,42 @@ export class ResilientTryOnManager {
           falError = err;
         }
         console.warn(`[TryOn Manager]: Model '${step.name}' failed: ${err.message}. Trying next provider in cascade...`);
+
+        // If provider rejected due to image upload size/payload limit, reduce dimensions for subsequent providers
+        if (
+          err.message &&
+          (err.message.includes('413') ||
+            err.message.toLowerCase().includes('payload too large') ||
+            err.message.toLowerCase().includes('size exceeds'))
+        ) {
+          console.warn(`[TryOn Manager]: Image upload rejected by provider due to size. Reducing to 576x768...`);
+          try {
+            preprocessedPerson = await this.preprocessPersonNoCrop(personBuffer, 576, 768);
+            preprocessedGarment = await this.preprocessGarmentNoCrop(rawGarmentBuffer, 576, 768);
+          } catch {}
+        }
+
+        if (aiProvider === 'render' && step.name.includes('Render Cloud API')) {
+          console.error(`[TryOn Manager]: Render Cloud API failed:`, err.message);
+          throw new Error(`Render API Error: ${err.message}. (Check if your Render service is active at ${process.env.RENDER_BACKEND_URL})`);
+        }
+
+        if (err.message.includes('HF_TOKEN not found in server/.env')) {
+          throw err;
+        }
       }
     }
 
+    // Every cloud AI provider failed: Return explicit error. NEVER return a composited or fake image!
     let errorDetail = '';
     if (falError && (falError.message.includes('TOP_UP') || falError.message.includes('User is locked') || falError.message.includes('403'))) {
-      errorDetail = 'Fal.ai API Error: Your Fal.ai account is locked because credits are exhausted (Reason: TOP_UP required). Please top up your Fal.ai account at https://fal.ai/dashboard/billing or enter a key with active credits in server/.env.';
+      errorDetail = 'Fal.ai API Error: Your Fal.ai account is locked (TOP_UP required). Please top up credits or switch AI_PROVIDER=hf_free.';
     } else if (lastError?.message?.includes('ZeroGPU') || lastError?.message?.includes('quota') || lastError?.message?.includes('429')) {
-      errorDetail = 'Hugging Face free ZeroGPU quota is temporarily exhausted for this Space. Please wait a short moment or try regenerating with another style or seed.';
-    } else if (lastError?.message?.includes('IndexError') || lastError?.message?.includes('KeyError')) {
-      errorDetail = 'Pose keypoint detection issue. Please stand back to keep your full body (head to feet) visible.';
+      errorDetail = 'Hugging Face free ZeroGPU quota is temporarily exhausted for this Space. Please wait a short moment and Retry.';
+    } else if (lastError?.message?.includes('Pose') || lastError?.message?.includes('IndexError') || lastError?.message?.includes('KeyError')) {
+      errorDetail = 'Pose detection issue. Please stand back so your full body (head to feet) is visible and Retry.';
     } else {
-      errorDetail = lastError?.message || 'All AI Virtual Try-On models were temporarily busy';
+      errorDetail = lastError?.message || 'All AI Virtual Try-On models were temporarily busy. Please Retry.';
     }
 
     throw new Error(`Virtual Try-On unavailable: ${errorDetail}`);

@@ -762,7 +762,8 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* Fill frame edge-to-edge like real mirror */
+  object-position: center; /* Keep person centered */
   transform: scaleX(-1); /* Mirror camera flip */
   display: none;
 }
@@ -1034,7 +1035,7 @@ button {
 .draped-saree-thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .draped-saree-info {
@@ -1085,7 +1086,7 @@ button {
   color: #FFFFFF;
 }
 
-/* Minimalist Circular Camera Shutter Button (Image 5 style) */
+/* Minimalist Circular Camera Shutter & Upload Buttons */
 .mirror-shutter-container {
   position: absolute;
   bottom: 2rem;
@@ -1093,8 +1094,11 @@ button {
   transform: translateX(-50%);
   z-index: 25;
   display: flex;
+  flex-direction: row; /* Keep horizontal on all sizes */
   align-items: center;
   justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: nowrap; /* Don't wrap to next line */
 }
 
 .mirror-shutter-circle-btn {
@@ -1106,6 +1110,7 @@ button {
   border: 3.5px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 6px rgba(255, 255, 255, 0.22);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -1114,13 +1119,22 @@ button {
 }
 
 .mirror-shutter-circle-btn i {
-  font-size: 2rem;
+  font-size: 1.6rem;
   color: #111827;
   transition: transform 0.2s ease;
 }
 
+.mirror-shutter-circle-btn .action-sublabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #374151;
+  margin-top: 2px;
+}
+
 .mirror-shutter-circle-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
   box-shadow: 0 12px 38px rgba(0, 0, 0, 0.65), 0 0 0 8px rgba(255, 255, 255, 0.35);
 }
 
@@ -1132,6 +1146,183 @@ button {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Upload Photo Button in Mirror Bar */
+.mirror-upload-action-btn {
+  height: 58px;
+  padding: 0 1.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #FF7A1A 0%, #E65C00 100%);
+  color: #FFFFFF;
+  border: 2.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 24px rgba(255, 122, 26, 0.45), 0 0 0 4px rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mirror-upload-action-btn i {
+  font-size: 1.25rem;
+}
+
+.mirror-upload-action-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 12px 32px rgba(255, 122, 26, 0.6), 0 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+.mirror-upload-action-btn:active {
+  transform: scale(0.95);
+}
+
+.mirror-upload-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Uploaded Photo Preview Inside Mirror Stage */
+.uploaded-photo-preview-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background: #0B2A5B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.uploaded-photo-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover; /* Fill frame like mirror */
+  object-position: center; /* Keep person centered */
+  display: block;
+}
+
+.uploaded-photo-top-bar {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 15;
+}
+
+.badge-uploaded-mode {
+  background: rgba(11, 42, 91, 0.85);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-switch-back-camera {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0B2A5B;
+  border: none;
+  padding: 0.45rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-switch-back-camera:hover {
+  transform: scale(1.05);
+  background: #FFFFFF;
+}
+
+/* Camera Connecting Actions Row */
+.camera-connecting-actions-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-upload-photo-direct {
+  background: linear-gradient(135deg, #1E5EFF 0%, #0B2A5B 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.75rem 1.4rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-upload-photo-direct:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(30, 94, 255, 0.4);
+}
+
+/* Sidebar Quick Upload Photo Panel */
+.upload-photo-panel {
+  background: linear-gradient(145deg, #FFFFFF 0%, #FFF8F2 100%);
+  border: 1.5px solid #FFE4D1;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 16px rgba(255, 122, 26, 0.08);
+}
+
+.sidebar-upload-hint {
+  font-size: 0.82rem;
+  color: #6B7280;
+  line-height: 1.4;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.btn-sidebar-upload {
+  width: 100%;
+  padding: 0.85rem 1.2rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #FF7A1A 0%, #E65C00 100%);
+  color: #FFFFFF;
+  border: none;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  box-shadow: 0 4px 14px rgba(255, 122, 26, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn-sidebar-upload:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(255, 122, 26, 0.45);
+}
+
+.btn-sidebar-upload:active {
+  transform: scale(0.98);
 }
 
 /* Camera Shutter Flash & Countdown */
@@ -1224,21 +1415,36 @@ button {
   gap: 1.25rem;
   height: 100%;
   overflow-y: auto;
+  padding-right: 0.5rem; /* Add space for scrollbar */
 }
 
 .sidebar-panel-box {
   background: var(--bg-white);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  padding: 1.25rem;
+  padding: 1rem; /* Reduced padding to save space */
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Allow panel to grow */
+  min-height: 0; /* Allow shrinking */
+  overflow: hidden; /* Prevent overflow from breaking layout */
+}
+
+.saree-drawer-box {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
 }
 
 .panel-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* Reduced margin */
+  flex-shrink: 0; /* Don't shrink header */
 }
 
 .panel-heading {
@@ -1389,24 +1595,28 @@ button {
 
 /* Quick Saree Drawer List (Sarees are the HERO) */
 .quick-saree-carousel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-height: 380px;
-  overflow-y: auto;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem;
+  flex: 1 1 auto !important; /* Take all available space */
+  overflow-y: auto !important;
+  overflow-x: hidden;
   padding-right: 4px;
+  min-height: 300px !important; /* Minimum scroll area */
+  height: 100% !important;
 }
 
 .quick-saree-item {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.6rem;
+  gap: 1rem;
+  padding: 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   background: var(--bg-white);
   transition: all var(--transition-fast);
   cursor: pointer;
+  min-height: 110px; /* Ensure minimum height for better spacing */
 }
 
 .quick-saree-item:hover {
@@ -1441,10 +1651,12 @@ button {
 }
 
 .quick-saree-img {
-  width: 54px;
-  height: 64px;
+  width: 70px;
+  height: 90px;
   border-radius: var(--radius-sm);
-  object-fit: cover;
+  object-fit: contain;
+  background: #FAF7F2;
+  border: 1px solid rgba(197, 139, 55, 0.2);
   flex-shrink: 0;
 }
 
@@ -1454,25 +1666,26 @@ button {
 }
 
 .quick-saree-name {
-  font-size: 0.86rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--deep-navy);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .quick-saree-meta {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .quick-saree-price {
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--secondary-blue);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .quick-try-btn {
@@ -1489,6 +1702,52 @@ button {
 .quick-try-btn:hover {
   background: var(--primary-orange-hover);
   transform: scale(1.05);
+}
+
+/* When user has a photo ready - "Try On" state */
+.quick-try-btn.try-on-ready {
+  background: linear-gradient(135deg, #00C853, #00BCD4);
+  color: #fff;
+  font-size: 0.76rem;
+  animation: tryon-btn-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(0, 200, 83, 0.45);
+}
+
+.quick-try-btn.try-on-ready:hover {
+  background: linear-gradient(135deg, #00E676, #00E5FF);
+  transform: scale(1.08);
+}
+
+@keyframes tryon-btn-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 200, 83, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(0, 200, 83, 0.8), 0 0 6px rgba(0, 188, 212, 0.6); }
+}
+
+/* Photo-ready banner above saree drawer */
+.photo-ready-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,188,212,0.10));
+  border: 1px solid rgba(0, 200, 83, 0.35);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+  color: #00C853;
+  font-weight: 600;
+  animation: fadein-banner 0.5s ease;
+}
+
+.photo-ready-banner i {
+  font-size: 1rem;
+  color: #00C853;
+  flex-shrink: 0;
+}
+
+@keyframes fadein-banner {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ==========================================================================
@@ -1582,16 +1841,20 @@ button {
 .saree-card-photo-stage {
   position: relative;
   width: 100%;
-  height: 420px;
-  background-color: #F8FAFC;
+  height: 460px;
+  background-color: #ffffff;
   overflow: hidden;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .saree-card-photo-stage img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center top;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1818,7 +2081,7 @@ button {
 .slot-image-wrapper img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .slot-specs {
@@ -1924,7 +2187,7 @@ button {
 .snap-img-box img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .snap-card-body {
@@ -2168,7 +2431,7 @@ button {
 .modal-hero-img-box img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .modal-silk-tag {
@@ -2299,7 +2562,7 @@ button {
 .qr-snapshot-preview img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .qr-title {
@@ -2864,7 +3127,7 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transform: scaleX(-1);
 }
 
@@ -3438,7 +3701,7 @@ button {
 .compare-slider-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -3871,4 +4134,735 @@ button {
 
 .btn-regenerate-seed:active {
   transform: translateY(0);
+}
+
+
+/* ==========================================================================
+   RESPONSIVE DESIGN - MOBILE, TABLET, LAPTOP
+   ========================================================================== */
+
+/* TABLET - LANDSCAPE (1024px and below) */
+@media screen and (max-width: 1024px) {
+  .mirror-workspace-grid {
+    grid-template-columns: 1fr 320px;
+    gap: 1.25rem;
+  }
+
+  .header-nav {
+    gap: 0.5rem;
+  }
+
+  .nav-tab-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .brand-header-title {
+    font-size: 1.15rem;
+  }
+
+  .brand-header-sub {
+    font-size: 0.6rem;
+  }
+}
+
+/* TABLET - PORTRAIT (768px and below) */
+@media screen and (max-width: 768px) {
+  .main-header {
+    height: 60px;
+    padding: 0 1rem;
+  }
+
+  .app-bottom-bar {
+    height: 40px;
+    padding: 0 1rem;
+    font-size: 0.7rem;
+  }
+
+  .header-left {
+    gap: 0.75rem;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .brand-header-title {
+    font-size: 1rem;
+  }
+
+  .brand-header-sub {
+    display: none;
+  }
+
+  .header-nav {
+    gap: 0.35rem;
+  }
+
+  .nav-tab-btn {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .nav-tab-btn span:not(.badge-count) {
+    display: none;
+  }
+
+  .nav-tab-btn i {
+    margin: 0;
+  }
+
+  .header-right {
+    gap: 0.5rem;
+  }
+
+  .btn-utility {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-utility span {
+    display: none;
+  }
+
+  /* MIRROR LAYOUT - STACK VERTICALLY */
+  .mirror-workspace-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 1rem;
+  }
+
+  .mirror-sidebar {
+    order: 2;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .mirror-frame {
+    border-radius: var(--radius-md);
+  }
+
+  .tab-panel {
+    padding: 1rem;
+  }
+
+  /* WELCOME SCREEN */
+  .welcome-screen {
+    padding: 1.5rem 1rem;
+  }
+
+  .brand-name {
+    font-size: 2.5rem;
+  }
+
+  .brand-mirror-tag {
+    font-size: 0.85rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  .btn-touch-to-start {
+    padding: 1.1rem 2.5rem;
+    font-size: 1.1rem;
+  }
+
+  .welcome-features-strip {
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .feature-divider {
+    display: none;
+  }
+
+  /* MIRROR CONTROLS */
+  .mirror-shutter-container {
+    bottom: 1rem;
+    gap: 0.85rem;
+  }
+
+  .mirror-shutter-circle-btn {
+    width: 64px;
+    height: 64px;
+  }
+
+  .mirror-shutter-circle-btn i {
+    font-size: 1.3rem;
+  }
+
+  .mirror-upload-action-btn {
+    height: 50px;
+    padding: 0 1.2rem;
+    font-size: 0.85rem;
+  }
+
+  .current-draped-card {
+    max-width: 280px;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .draped-saree-thumb {
+    width: 40px;
+    height: 40px;
+  }
+
+  .camera-connecting-state h3 {
+    font-size: 1.2rem;
+  }
+
+  .camera-connecting-state p {
+    font-size: 0.85rem;
+  }
+}
+
+/* MOBILE - LARGE (640px and below) */
+@media screen and (max-width: 640px) {
+  .main-header {
+    height: 56px;
+    padding: 0 0.75rem;
+  }
+
+  .app-bottom-bar {
+    height: 36px;
+    font-size: 0.65rem;
+  }
+
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .brand-header-title {
+    font-size: 0.9rem;
+  }
+
+  .header-nav {
+    padding: 0.2rem 0.3rem;
+  }
+
+  .nav-tab-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .badge-count {
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.65rem;
+  }
+
+  .header-lang-switch {
+    padding: 2px;
+  }
+
+  .header-lang-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  .tab-panel {
+    padding: 0.75rem;
+  }
+
+  /* MIRROR CONTROLS */
+  .mirror-shutter-container {
+    flex-direction: row !important; /* Keep horizontal on mobile */
+    gap: 0.6rem;
+    bottom: 0.75rem;
+  }
+
+  .mirror-shutter-circle-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .mirror-upload-action-btn {
+    height: 42px;
+    padding: 0 0.9rem;
+    font-size: 0.72rem;
+  }
+
+  .mirror-shutter-circle-btn i {
+    font-size: 1.1rem;
+  }
+
+  .action-sublabel {
+    display: none;
+  }
+
+  .mirror-upload-action-btn {
+    height: 44px;
+    padding: 0 1rem;
+    font-size: 0.75rem;
+  }
+
+  .mirror-live-badge {
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.7rem;
+  }
+
+  .current-draped-card {
+    display: none; /* Hide on small mobile to save space */
+  }
+
+  .camera-connecting-state {
+    padding: 1.5rem 1rem;
+  }
+
+  .camera-loader-ring {
+    width: 70px;
+    height: 70px;
+    font-size: 1.8rem;
+  }
+
+  .camera-connecting-state h3 {
+    font-size: 1.1rem;
+  }
+
+  .camera-connecting-state p {
+    font-size: 0.8rem;
+    max-width: 280px;
+  }
+
+  .camera-connecting-actions-row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .camera-connecting-actions-row button {
+    width: 100%;
+  }
+
+  /* WELCOME SCREEN */
+  .welcome-screen {
+    padding: 1rem 0.75rem;
+  }
+
+  .emblem-ring {
+    width: 70px;
+    height: 70px;
+  }
+
+  .emblem-icon {
+    font-size: 1.8rem;
+  }
+
+  .brand-name {
+    font-size: 2rem;
+  }
+
+  .brand-mirror-tag {
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-touch-to-start {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    gap: 0.85rem;
+  }
+
+  .welcome-features-strip {
+    font-size: 0.7rem;
+    padding: 0.5rem 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .kiosk-status {
+    font-size: 0.75rem;
+  }
+
+  /* SIDEBAR PANELS */
+  .sidebar-panel-box {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .panel-heading {
+    font-size: 0.85rem;
+  }
+
+  .badge-orange, .badge-blue {
+    font-size: 0.65rem;
+  }
+}
+
+/* MOBILE - SMALL (480px and below) */
+@media screen and (max-width: 480px) {
+  html {
+    font-size: 14px; /* Scale down base font */
+  }
+
+  .main-header {
+    height: 52px;
+    padding: 0 0.5rem;
+  }
+
+  .app-bottom-bar {
+    flex-direction: column;
+    height: auto;
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
+    font-size: 0.6rem;
+  }
+
+  .header-left {
+    gap: 0.5rem;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .brand-header-title {
+    font-size: 0.8rem;
+  }
+
+  .header-nav {
+    gap: 0.25rem;
+  }
+
+  .nav-tab-btn {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .nav-tab-btn i {
+    font-size: 0.9rem;
+  }
+
+  .header-right {
+    gap: 0.35rem;
+  }
+
+  .btn-utility {
+    padding: 0.35rem 0.65rem;
+  }
+
+  .btn-utility i {
+    font-size: 0.85rem;
+  }
+
+  .tab-panel {
+    padding: 0.5rem;
+  }
+
+  .mirror-frame {
+    border-radius: 12px;
+  }
+
+  .mirror-sidebar {
+    max-height: 250px;
+  }
+
+  .mirror-shutter-container {
+    flex-direction: row !important; /* Keep horizontal */
+    gap: 0.5rem;
+    bottom: 0.5rem;
+  }
+
+  .mirror-shutter-circle-btn {
+    width: 48px;
+    height: 48px;
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+  }
+
+  .mirror-shutter-circle-btn i {
+    font-size: 0.95rem;
+  }
+
+  .mirror-upload-action-btn {
+    height: 38px;
+    padding: 0 0.8rem;
+    font-size: 0.7rem;
+  }
+
+  .mirror-upload-action-btn i {
+    font-size: 0.95rem;
+  }
+
+  .mirror-live-badge {
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.65rem;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* WELCOME SCREEN */
+  .welcome-screen {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .brand-badge {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.65rem;
+  }
+
+  .welcome-lang-toggle {
+    padding: 3px;
+  }
+
+  .lang-pill {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .emblem-ring {
+    width: 60px;
+    height: 60px;
+  }
+
+  .emblem-icon {
+    font-size: 1.5rem;
+  }
+
+  .brand-name {
+    font-size: 1.75rem;
+  }
+
+  .brand-mirror-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .btn-touch-to-start {
+    padding: 0.85rem 1.75rem;
+    font-size: 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .btn-touch-to-start .btn-icon {
+    font-size: 1.2rem;
+  }
+
+  .btn-touch-to-start .btn-arrow {
+    font-size: 1rem;
+  }
+
+  .welcome-features-strip {
+    font-size: 0.65rem;
+    padding: 0.4rem 0.6rem;
+    gap: 0.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .kiosk-status {
+    font-size: 0.7rem;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .camera-connecting-state {
+    padding: 1rem 0.75rem;
+  }
+
+  .camera-loader-ring {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .camera-connecting-state h3 {
+    font-size: 1rem;
+  }
+
+  .camera-connecting-state p {
+    font-size: 0.75rem;
+    max-width: 240px;
+  }
+
+  .btn-primary-orange,
+  .btn-secondary-blue {
+    padding: 0.65rem 1.1rem;
+    font-size: 0.8rem;
+  }
+
+  .sidebar-panel-box {
+    padding: 0.85rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .panel-heading {
+    font-size: 0.8rem;
+  }
+
+  .badge-orange, .badge-blue {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* LANDSCAPE ORIENTATION - MOBILE */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .main-header {
+    height: 48px;
+  }
+
+  .app-bottom-bar {
+    height: 32px;
+    font-size: 0.6rem;
+  }
+
+  .tab-panel {
+    padding: 0.5rem;
+  }
+
+  .mirror-workspace-grid {
+    grid-template-columns: 1fr 280px;
+    gap: 0.75rem;
+  }
+
+  .mirror-sidebar {
+    max-height: none;
+  }
+
+  .mirror-shutter-container {
+    bottom: 0.5rem;
+  }
+
+  .mirror-shutter-circle-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .mirror-upload-action-btn {
+    height: 38px;
+    font-size: 0.7rem;
+  }
+
+  .welcome-screen {
+    padding: 1rem;
+  }
+
+  .brand-name {
+    font-size: 1.5rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .btn-touch-to-start {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .welcome-features-strip {
+    display: none;
+  }
+}
+
+/* ULTRA-WIDE DESKTOP (1920px and above) */
+@media screen and (min-width: 1920px) {
+  .mirror-workspace-grid {
+    grid-template-columns: 1fr 420px;
+    gap: 2rem;
+    max-width: 1800px;
+  }
+
+  .mirror-frame {
+    border-radius: 32px;
+  }
+
+  .brand-name {
+    font-size: 5rem;
+  }
+
+  .btn-touch-to-start {
+    padding: 1.6rem 4rem;
+    font-size: 1.5rem;
+  }
+}
+
+/* PRINT STYLES */
+@media print {
+  .main-header,
+  .app-bottom-bar,
+  .mirror-sidebar,
+  .welcome-screen,
+  .mirror-shutter-container,
+  .mirror-live-badge {
+    display: none !important;
+  }
+
+  .mirror-frame {
+    border: 2px solid #000;
+    border-radius: 0;
+  }
+
+  body {
+    background: #fff;
+  }
+}
+
+/* ACCESSIBILITY - PREFERS REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn-touch-to-start {
+    animation: none;
+  }
+
+  .live-dot.pulse {
+    animation: none;
+  }
+
+  .emblem-ring {
+    animation: none;
+  }
+}
+
+/* HIGH CONTRAST MODE */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000;
+    --text-main: #000;
+    --bg-white: #fff;
+  }
+
+  .main-header,
+  .app-bottom-bar {
+    border-color: #000;
+  }
+
+  button {
+    border: 2px solid #000;
+  }
 }
