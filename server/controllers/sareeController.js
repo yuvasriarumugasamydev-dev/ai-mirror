@@ -8,6 +8,86 @@ const __dirname = path.dirname(__filename);
 const LOCAL_SAREES_PATH = path.resolve(__dirname, '../data/sarees.json');
 
 /**
+ * POST /api/sarees
+ * Add a new saree to the catalog
+ */
+export const addSaree = async (req, res) => {
+  try {
+    const newSaree = {
+      sareeId: req.body.id || `saree-${Date.now()}`,
+      name: req.body.name,
+      category: req.body.category || 'kanjivaram',
+      isBridal: req.body.isBridal || false,
+      price: parseInt(req.body.price?.replace(/[₹,]/g, '')) || 0,
+      priceFormatted: req.body.price || '₹0',
+      fabric: req.body.fabric || 'Pure Silk',
+      image: req.body.image || '/assets/placeholder.jpg',
+      tryOnImage: req.body.image || '/assets/placeholder.jpg',
+      accentColor: req.body.colorCode || '#A61C52',
+      rating: 4.8,
+      reviewsCount: 0,
+      story: `Beautiful ${req.body.name}`,
+      _id: req.body.id || `saree-${Date.now()}`
+    };
+
+    // Read existing sarees
+    let sarees = getLocalSareesData();
+    
+    // Add new saree to the beginning
+    sarees.unshift(newSaree);
+    
+    // Save to JSON file
+    try {
+      fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+      console.log(`[addSaree]: Successfully added '${newSaree.name}' to catalog`);
+    } catch (e) {
+      console.error('[addSaree]: Error writing to sarees.json:', e.message);
+      return res.status(500).json({ success: false, message: 'Failed to save saree to file' });
+    }
+
+    return res.json({ success: true, data: newSaree, message: 'Saree added successfully' });
+  } catch (error) {
+    console.error('[addSaree error]:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * DELETE /api/sarees/:id
+ * Delete a saree from the catalog
+ */
+export const deleteSaree = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Read existing sarees
+    let sarees = getLocalSareesData();
+    
+    // Find and remove the saree
+    const initialLength = sarees.length;
+    sarees = sarees.filter(s => s.sareeId !== id && s._id !== id);
+    
+    if (sarees.length === initialLength) {
+      return res.status(404).json({ success: false, message: 'Saree not found' });
+    }
+    
+    // Save to JSON file
+    try {
+      fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+      console.log(`[deleteSaree]: Successfully deleted saree with id '${id}'`);
+    } catch (e) {
+      console.error('[deleteSaree]: Error writing to sarees.json:', e.message);
+      return res.status(500).json({ success: false, message: 'Failed to delete saree from file' });
+    }
+
+    return res.json({ success: true, message: 'Saree deleted successfully' });
+  } catch (error) {
+    console.error('[deleteSaree error]:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
  * Load sarees directly from local JSON file (no DB seed dependency)
  */
 export const getLocalSareesData = () => {
