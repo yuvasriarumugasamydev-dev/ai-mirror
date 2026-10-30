@@ -40,7 +40,6 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 // Static Assets Serving
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use('/admin', express.static(path.join(__dirname, '../admin')));
 
 // API Routes
 app.use('/api/sarees', sareeRoutes);
@@ -74,12 +73,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve Frontend Client in Production
+// Serve Frontend Client in Production (including /admin SPA route)
 const clientDist = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDist));
 
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/assets') || req.path.startsWith('/results') || req.path.startsWith('/admin')) {
+  if (req.path.startsWith('/api') || req.path.startsWith('/assets') || req.path.startsWith('/results')) {
     return next();
   }
   const indexPath = path.join(clientDist, 'index.html');
