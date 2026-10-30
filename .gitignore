@@ -11,8 +11,14 @@ server/node_modules/
 
 # Production Builds
 client/dist/
+client/dist.zip
+client/build file/
 build/
 dist/
+
+# Scratch & Sub-repos
+scratch/
+api/
 
 # Logs
 *.log

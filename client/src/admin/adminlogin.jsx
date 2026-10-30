@@ -39,34 +39,26 @@ export function AdminLogin({ onBackToMirror }) {
     } catch (e) {}
   };
 
-  // PRODUCTS STATE (Stored in DB and localStorage)
-  const [products, setProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem('vastra_admin_products');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  // PRODUCTS STATE (Direct from MongoDB DB)
+  const [products, setProducts] = useState([]);
 
   // Fetch true database products from MongoDB on mount
   React.useEffect(() => {
     fetch('/api/sarees')
       .then(r => r.json())
       .then(res => {
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        if (res && res.success && Array.isArray(res.data)) {
           const fallbackAssets = [
-            '/assets/saree_kanjivaram_red.jpg',
-            '/assets/saree_peacock_blue.jpg',
-            '/assets/saree_blush_pink.jpg',
-            '/assets/saree_mustard_yellow.jpg',
-            '/assets/kanjivaram_red_gold_1791632062922.jpg',
-            '/assets/peacock_blue_saree_1791632083264.jpg',
+            '/assets/image_20261013_123805.jpg',
+            '/assets/image_20261013_123806.jpg',
+            '/assets/image_20261013_123806_1.jpg',
+            '/assets/image_20261013_123806_2.jpg',
+            '/assets/image_20261013_123812.jpg',
+            '/assets/image_20261013_123813.jpg',
           ];
 
           const formatted = res.data.map((item, idx) => {
             let finalImage = item.image;
-            // Clean out invalid / empty dummy strings
             if (!finalImage || finalImage.includes('undefined') || finalImage.includes('null')) {
               finalImage = fallbackAssets[idx % fallbackAssets.length];
             }
@@ -112,6 +104,7 @@ export function AdminLogin({ onBackToMirror }) {
   // LIVE TRY-ON REAL-TIME METRICS
   const [tryOnsToday, setTryOnsToday] = useState(0);
   const [totalTryOns, setTotalTryOns] = useState(0);
+  const [sareeTryCounts, setSareeTryCounts] = useState({});
 
   const fetchLiveTryOnCounts = React.useCallback(async () => {
     try {
@@ -129,6 +122,9 @@ export function AdminLogin({ onBackToMirror }) {
             const serverTotal = Number(data.totalCount) || 0;
             setTryOnsToday(Math.max(localToday, serverToday));
             setTotalTryOns(Math.max(localTotal, serverTotal));
+            if (data.sareeCounts && typeof data.sareeCounts === 'object') {
+              setSareeTryCounts(data.sareeCounts);
+            }
             return;
           }
         }
@@ -836,7 +832,7 @@ export function AdminLogin({ onBackToMirror }) {
                               <div>
                                 <div style={{ fontSize: '14px', fontWeight: '700', color: '#3D0A1E' }}>{item.name}</div>
                                 <div style={{ fontSize: '12px', color: '#7A4E5F', marginTop: '2px' }}>
-                                  {item.fabric} • <span style={{ color: '#A61C52', fontWeight: '600' }}>₹{item.price}</span>
+                                  {item.fabric} • <span style={{ color: '#A61C52', fontWeight: '600' }}>{item.price?.toString().startsWith('₹') ? item.price : `₹${item.price}`}</span>
                                 </div>
                               </div>
                             </div>
@@ -861,195 +857,152 @@ export function AdminLogin({ onBackToMirror }) {
                     </div>
                   </div>
 
-                  {/* CARD 2: BOUTIQUE LIGHTING & ATMOSPHERE CONTROLLER */}
-                  <div style={styles.tableCard}>
-                    <div style={styles.tableCardHeader}>
-                      <div>
-                        <h3 style={styles.tableCardTitle}>
-                          <i className="fa-solid fa-lightbulb" style={{ color: '#F59E0B', marginRight: '8px' }}></i>
-                          Boutique Lighting & Atmosphere
-                        </h3>
-                        <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Live AI Mirror showroom glow & zari enhancer</span>
-                      </div>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
-                        Mirror Synced
-                      </span>
-                    </div>
+                  {/* CARD 2: SAREE FABRIC TRY-ON DISTRIBUTION DONUT CHART */}
+                  {(() => {
+                    // Compute dynamic fabric stats from actual products and tryon records
+                    const fabricMap = {};
+                    products.forEach(p => {
+                      const f = p.fabric ? p.fabric.split('(')[0].trim() : 'Pure Silk';
+                      const count = sareeTryCounts[p.sareeId] || sareeTryCounts[p.id] || 0;
+                      fabricMap[f] = (fabricMap[f] || 0) + count;
+                    });
 
-                    {/* Lighting Ambience Controller Options */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      
-                      {/* PRESET 1: ROYAL GOLD WARMTH */}
-                      <div 
-                        onClick={() => handleLightingChange('gold')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          background: activeLighting === 'gold' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(166, 28, 82, 0.08) 100%)' : '#FAF5EF',
-                          border: activeLighting === 'gold' ? '1.5px solid #C58B37' : '1px solid #F5ECE6',
-                          boxShadow: activeLighting === 'gold' ? '0 4px 14px rgba(197, 139, 55, 0.2)' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '10px',
-                            background: activeLighting === 'gold' ? 'linear-gradient(135deg, #F59E0B, #D97706)' : '#FFFFFF',
-                            color: activeLighting === 'gold' ? '#FFFFFF' : '#D97706',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)'
-                          }}>
-                            <i className="fa-solid fa-sparkles"></i>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              Royal Gold Warmth
-                              {activeLighting === 'gold' && <span style={{ fontSize: '9px', background: '#C58B37', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
-                              Amplifies 24K Zari shimmer for Kanjivaram Bridal silks
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${activeLighting === 'gold' ? '#C58B37' : '#D5C2B6'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          {activeLighting === 'gold' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#C58B37' }}></div>}
-                        </div>
-                      </div>
+                    const fabricEntries = Object.entries(fabricMap);
+                    const totalFabricDrapes = fabricEntries.reduce((sum, [, val]) => sum + val, 0);
 
-                      {/* PRESET 2: DAYLIGHT CRISP */}
-                      <div 
-                        onClick={() => handleLightingChange('daylight')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          background: activeLighting === 'daylight' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)' : '#FAF5EF',
-                          border: activeLighting === 'daylight' ? '1.5px solid #2563EB' : '1px solid #F5ECE6',
-                          boxShadow: activeLighting === 'daylight' ? '0 4px 14px rgba(37, 99, 235, 0.18)' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '10px',
-                            background: activeLighting === 'daylight' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : '#FFFFFF',
-                            color: activeLighting === 'daylight' ? '#FFFFFF' : '#2563EB',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
-                          }}>
-                            <i className="fa-solid fa-sun"></i>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              Daylight Crisp
-                              {activeLighting === 'daylight' && <span style={{ fontSize: '9px', background: '#2563EB', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
-                              True-to-life color accuracy for Organza & Pastel shades
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${activeLighting === 'daylight' ? '#2563EB' : '#D5C2B6'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          {activeLighting === 'daylight' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563EB' }}></div>}
-                        </div>
-                      </div>
+                    // Colors for fabrics
+                    const fabricColors = ['#A61C52', '#C58B37', '#E8A598', '#10B981', '#1E5EFF', '#8B5CF6'];
 
-                      {/* PRESET 3: CANDLELIGHT RECEPTION */}
-                      <div 
-                        onClick={() => handleLightingChange('candlelight')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          background: activeLighting === 'candlelight' ? 'linear-gradient(135deg, rgba(166, 28, 82, 0.12) 0%, rgba(244, 63, 94, 0.08) 100%)' : '#FAF5EF',
-                          border: activeLighting === 'candlelight' ? '1.5px solid #A61C52' : '1px solid #F5ECE6',
-                          boxShadow: activeLighting === 'candlelight' ? '0 4px 14px rgba(166, 28, 82, 0.18)' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '10px',
-                            background: activeLighting === 'candlelight' ? 'linear-gradient(135deg, #A61C52, #E11D48)' : '#FFFFFF',
-                            color: activeLighting === 'candlelight' ? '#FFFFFF' : '#A61C52',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            boxShadow: '0 2px 8px rgba(166, 28, 82, 0.25)'
-                          }}>
-                            <i className="fa-solid fa-moon"></i>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#3D0A1E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              Candlelight Reception
-                              {activeLighting === 'candlelight' && <span style={{ fontSize: '9px', background: '#A61C52', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
+                    // If total is 0, give each fabric 0 and a clean ring
+                    const circumference = 238.7;
+                    let accumulatedPercent = 0;
+                    const segments = fabricEntries.slice(0, 4).map(([fabricName, count], i) => {
+                      const pct = totalFabricDrapes > 0 ? (count / totalFabricDrapes) : (fabricEntries.length > 0 ? (1 / fabricEntries.length) : 0.25);
+                      const dashLength = totalFabricDrapes > 0 ? (pct * circumference) : (circumference / Math.max(fabricEntries.length, 1));
+                      const offset = -(accumulatedPercent * circumference);
+                      accumulatedPercent += pct;
+                      return {
+                        name: fabricName,
+                        count,
+                        pct: totalFabricDrapes > 0 ? Math.round(pct * 100) : 0,
+                        color: fabricColors[i % fabricColors.length],
+                        dasharray: `${dashLength.toFixed(1)} ${circumference}`,
+                        dashoffset: offset.toFixed(1)
+                      };
+                    });
+
+                    return (
+                      <div style={{ ...styles.tableCard, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={styles.tableCardHeader}>
+                            <div>
+                              <h3 style={styles.tableCardTitle}>
+                                <i className="fa-solid fa-chart-pie" style={{ color: '#A61C52', marginRight: '8px' }}></i>
+                                Fabric Try-On Distribution
+                              </h3>
+                              <span style={{ fontSize: '12px', color: '#7A4E5F' }}>Real-time customer drape trials by fabric</span>
                             </div>
-                            <div style={{ fontSize: '11px', color: '#7A4E5F', marginTop: '2px' }}>
-                              Soft romantic mood for Banarasi & evening drapes
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#10B981', fontWeight: '700', background: 'rgba(16, 185, 129, 0.1)', padding: '5px 12px', borderRadius: '20px' }}>
+                              <i className="fa-solid fa-circle" style={{ fontSize: '7px' }}></i>
+                              {totalTryOns} Drapes Total
+                            </span>
+                          </div>
+
+                          {/* Donut Chart & Legend Container */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', padding: '12px 0 16px 0' }}>
+                            
+                            {/* 1. LUXURY SVG DONUT CHART */}
+                            <div style={{ position: 'relative', width: '155px', height: '155px', flexShrink: 0 }}>
+                              <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                                {totalFabricDrapes === 0 ? (
+                                  <circle cx="50" cy="50" r="38" fill="transparent" stroke="#E8DACF" strokeWidth="16" />
+                                ) : (
+                                  segments.map((seg, sIdx) => (
+                                    <circle
+                                      key={sIdx}
+                                      cx="50" cy="50" r="38"
+                                      fill="transparent"
+                                      stroke={seg.color}
+                                      strokeWidth="16"
+                                      strokeDasharray={seg.dasharray}
+                                      strokeDashoffset={seg.dashoffset}
+                                    />
+                                  ))
+                                )}
+                              </svg>
+
+                              {/* Center Hole Badge with Total */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: 'center',
+                                pointerEvents: 'none'
+                              }}>
+                                <div style={{ fontSize: '19px', fontWeight: '800', color: '#3D0A1E', lineHeight: '1.1' }}>
+                                  {totalTryOns}
+                                </div>
+                                <div style={{ fontSize: '10px', fontWeight: '700', color: '#7A4E5F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  Try-Ons
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. FABRIC BREAKDOWN LEGEND */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {segments.length === 0 ? (
+                                <div style={{ fontSize: '12px', color: '#7A4E5F' }}>No fabric data recorded yet.</div>
+                              ) : (
+                                segments.map((seg, sIdx) => (
+                                  <div key={sIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: '8px', background: '#FAF5EF', border: '1px solid #F5ECE6' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: seg.color, display: 'inline-block' }}></span>
+                                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#3D0A1E', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {seg.name}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ fontSize: '11px', color: '#7A4E5F' }}>{seg.count} drapes</span>
+                                      <span style={{ fontSize: '11px', fontWeight: '800', color: seg.color, background: `${seg.color}1A`, padding: '1px 6px', borderRadius: '6px' }}>
+                                        {seg.pct}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3. SHOWROOM FABRIC INSIGHT STATS BADGES */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                            <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
+                              <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Primary Fabric</div>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#A61C52', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <i className="fa-solid fa-crown" style={{ color: '#C58B37', marginRight: '6px' }}></i>
+                                {products[0]?.fabric?.split('(')[0]?.trim() || 'Pure Silk'}
+                              </div>
+                            </div>
+                            <div style={{ padding: '10px 14px', background: '#FAF5EF', border: '1px solid #F5ECE6', borderRadius: '10px' }}>
+                              <div style={{ fontSize: '11px', color: '#7A4E5F' }}>Active Showroom Items</div>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#10B981', marginTop: '2px' }}>
+                                <i className="fa-solid fa-bolt" style={{ color: '#10B981', marginRight: '6px' }}></i>
+                                {products.length} Sarees
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${activeLighting === 'candlelight' ? '#A61C52' : '#D5C2B6'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          {activeLighting === 'candlelight' && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#A61C52' }}></div>}
+
+                        {/* Quick Summary Footer */}
+                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
+                          <span><i className="fa-solid fa-database" style={{ color: '#10B981', marginRight: '6px' }}></i> Live Database Telemetry Verified</span>
+                          <span style={{ fontWeight: '700', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 8px', borderRadius: '12px' }}>
+                            {totalTryOns > 0 ? `${totalTryOns} Trials` : 'Awaiting Mirror Trials'}
+                          </span>
                         </div>
                       </div>
-
-                    </div>
-
-                    {/* Quick Hint Footer */}
-                    <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #F5ECE6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#7A4E5F' }}>
-                      <span><i className="fa-solid fa-sliders" style={{ color: '#A61C52', marginRight: '5px' }}></i> Click any preset to broadcast to Mirror</span>
-                      <span style={{ fontWeight: '700', color: '#3D0A1E' }}>Instant Sync ⚡</span>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                 </div>
 
@@ -1095,64 +1048,6 @@ export function AdminLogin({ onBackToMirror }) {
 
                     <div style={{ display: 'flex', height: '240px', alignItems: 'stretch', position: 'relative' }}>
                       
-                      {/* Y-Axis scale indicators */}
-                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '14px', borderRight: '1.5px dashed #E5D5C8', color: '#7A4E5F', fontSize: '10px', fontWeight: '700', paddingBottom: '36px', width: '65px' }}>
-                        <span>100 Drapes</span>
-                        <span>75 Drapes</span>
-                        <span>50 Drapes</span>
-                        <span>25 Drapes</span>
-                        <span>0</span>
-                      </div>
-
-                      {/* Main Chart Area with Overlay Line Graph */}
-                      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingLeft: '10px' }}>
-                        
-                        {/* Horizontal Grid Guidelines */}
-                        <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-                        <div style={{ position: 'absolute', top: '65px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-                        <div style={{ position: 'absolute', top: '120px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-                        <div style={{ position: 'absolute', top: '175px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
-
-                        {/* SMOOTH CONNECTING LINE SVG OVERLAY */}
-                        <svg viewBox="0 0 700 180" style={{ position: 'absolute', top: '10px', left: 0, width: '100%', height: '175px', pointerEvents: 'none', zIndex: 3 }} preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#A61C52" />
-                              <stop offset="50%" stopColor="#C58B37" />
-                              <stop offset="100%" stopColor="#10B981" />
-                            </linearGradient>
-                            <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                              <stop offset="0%" stopColor="rgba(166, 28, 82, 0.18)" />
-                              <stop offset="100%" stopColor="rgba(166, 28, 82, 0.0)" />
-                            </linearGradient>
-                          </defs>
-
-                          {/* Gradient Fill Area Under Curve */}
-                          <path
-                            d="M 50 20 Q 150 50, 250 82 T 450 120 T 650 148 L 650 180 L 50 180 Z"
-                            fill="url(#areaGrad)"
-                          />
-
-                          {/* Smooth Flowing Trend Line */}
-                          <path
-                            d="M 50 20 Q 150 50, 250 82 T 450 120 T 650 148"
-                            fill="none"
-                            stroke="url(#lineGrad)"
-                            strokeWidth="3.5"
-                            strokeLinecap="round"
-                          />
-
-                          {/* Glowing Trend Data Dots */}
-                          <circle cx="50" cy="20" r="5" fill="#FFFFFF" stroke="#A61C52" strokeWidth="3" />
-                          <circle cx="150" cy="50" r="5" fill="#FFFFFF" stroke="#1E5EFF" strokeWidth="3" />
-                          <circle cx="250" cy="82" r="5" fill="#FFFFFF" stroke="#C58B37" strokeWidth="3" />
-                          <circle cx="350" cy="102" r="5" fill="#FFFFFF" stroke="#10B981" strokeWidth="3" />
-                          <circle cx="450" cy="120" r="5" fill="#FFFFFF" stroke="#E11D48" strokeWidth="3" />
-                          <circle cx="550" cy="135" r="5" fill="#FFFFFF" stroke="#8B5CF6" strokeWidth="3" />
-                          <circle cx="650" cy="148" r="5" fill="#FFFFFF" stroke="#7A4E5F" strokeWidth="3" />
-                        </svg>
-
-                        {/* Columns Container Driven purely by Real Products from DB */}
                         {(() => {
                           const displaySarees = products.length > 0 ? products.slice(0, 7) : [];
                           const colors = [
@@ -1165,61 +1060,132 @@ export function AdminLogin({ onBackToMirror }) {
                             'linear-gradient(180deg, #7A4E5F 0%, #9E6B7E 100%)'
                           ];
 
-                          if (displaySarees.length === 0) {
-                            return (
-                              <div style={{ textAlign: 'center', width: '100%', padding: '40px 0', color: '#7A4E5F' }}>
-                                <i className="fa-solid fa-chart-simple" style={{ fontSize: '28px', color: '#C58B37', marginBottom: '8px' }}></i>
-                                <div>No sarees loaded yet in database to show trial volume.</div>
-                              </div>
-                            );
-                          }
-
-                          return displaySarees.map((p, idx) => {
-                            const trialsCount = parseInt(p.drapes, 10) || 0;
-                            // Dynamic scale percentage based on trials
-                            const pct = totalTryOns > 0 
-                              ? Math.min(Math.max(Math.round((trialsCount / totalTryOns) * 100), 18), 92)
-                              : (trialsCount > 0 ? Math.min(trialsCount * 5, 88) : 18);
-
-                            return (
-                              <div key={p.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '56px', position: 'relative', zIndex: 4 }}>
-                                
-                                {/* Floating Count Badge on Top */}
-                                <div style={{ background: '#FFFFFF', border: '1.5px solid #E8DACF', padding: '2px 7px', borderRadius: '8px', fontSize: '10px', fontWeight: '800', color: '#3D0A1E', marginBottom: '8px', boxShadow: '0 2px 8px rgba(61,10,30,0.06)', whiteSpace: 'nowrap' }}>
-                                  {trialsCount}
-                                </div>
-
-                                {/* Stylized Column Bar with Soft Glass Shadow */}
-                                <div
-                                  title={`${p.name} (${p.fabric}): ${trialsCount} trials`}
-                                  style={{
-                                    width: '32px',
-                                    height: `${pct}%`,
-                                    background: colors[idx % colors.length],
-                                    borderRadius: '8px 8px 0 0',
-                                    boxShadow: '0 6px 16px rgba(61, 10, 30, 0.12)',
-                                    transition: 'all 0.4s ease'
-                                  }}
-                                ></div>
-
-                                {/* X-Axis Saree & Fabric Labels */}
-                                <div style={{ marginTop: '10px', textAlign: 'center', width: '68px' }}>
-                                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#3D0A1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {p.name}
-                                  </div>
-                                  <div style={{ fontSize: '9px', color: '#7A4E5F', fontWeight: '600', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {p.fabric}
-                                  </div>
-                                </div>
-
-                              </div>
-                            );
+                          // Real drape values per saree from database/snapshots
+                          const sareesWithCounts = displaySarees.map((p) => {
+                            const dbTryCount = sareeTryCounts[p.sareeId] || sareeTryCounts[p.id] || 0;
+                            const parsed = parseInt(p.drapes, 10);
+                            const count = dbTryCount > 0 ? dbTryCount : (!isNaN(parsed) ? parsed : 0);
+                            return { ...p, count };
                           });
+
+                          // Determine max scale dynamically: if all 0, base max is 10
+                          const calculatedMax = Math.max(...sareesWithCounts.map(s => s.count), 0);
+                          const maxCount = calculatedMax > 0 ? Math.ceil(calculatedMax / 5) * 5 : 10;
+
+                          // SVG Line coordinates dynamically matching bar heights
+                          const countToY = (cnt) => {
+                            if (cnt === 0) return 175;
+                            return Math.round(175 - (cnt / maxCount) * 150);
+                          };
+
+                          const points = sareesWithCounts.map((s, idx) => {
+                            const x = Math.round(45 + idx * 100);
+                            const y = countToY(s.count);
+                            return { x, y, count: s.count };
+                          });
+
+                          const pathD = points.length > 0 
+                            ? `M ${points.map(pt => `${pt.x} ${pt.y}`).join(' L ')}`
+                            : 'M 50 175';
+                          const areaD = points.length > 0
+                            ? `M ${points[0].x} 175 L ${points.map(pt => `${pt.x} ${pt.y}`).join(' L ')} L ${points[points.length - 1].x} 175 Z`
+                            : '';
+
+                          return (
+                            <>
+                              {/* Y-Axis dynamic scale indicators */}
+                              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '14px', borderRight: '1.5px dashed #E5D5C8', color: '#7A4E5F', fontSize: '10px', fontWeight: '700', paddingBottom: '36px', width: '65px' }}>
+                                <span>{maxCount} Drapes</span>
+                                <span>{Math.round(maxCount * 0.75)} Drapes</span>
+                                <span>{Math.round(maxCount * 0.5)} Drapes</span>
+                                <span>{Math.round(maxCount * 0.25)} Drapes</span>
+                                <span>0</span>
+                              </div>
+
+                              {/* Main Chart Area with Overlay Line Graph */}
+                              <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingLeft: '10px' }}>
+                                
+                                {/* Horizontal Grid Guidelines */}
+                                <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+                                <div style={{ position: 'absolute', top: '65px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+                                <div style={{ position: 'absolute', top: '120px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+                                <div style={{ position: 'absolute', top: '175px', left: 0, right: 0, borderTop: '1px dashed #EFE3D8', pointerEvents: 'none' }}></div>
+
+                                {displaySarees.length === 0 ? (
+                                  <div style={{ textAlign: 'center', width: '100%', padding: '40px 0', color: '#7A4E5F' }}>
+                                    <i className="fa-solid fa-chart-simple" style={{ fontSize: '28px', color: '#C58B37', marginBottom: '8px' }}></i>
+                                    <div>No sarees loaded yet in database to show trial volume.</div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {/* SMOOTH CONNECTING LINE SVG OVERLAY DYNAMICALLY MATCHED */}
+                                    <svg viewBox="0 0 700 180" style={{ position: 'absolute', top: '10px', left: 0, width: '100%', height: '175px', pointerEvents: 'none', zIndex: 3 }} preserveAspectRatio="none">
+                                      <defs>
+                                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                          <stop offset="0%" stopColor="#A61C52" />
+                                          <stop offset="50%" stopColor="#C58B37" />
+                                          <stop offset="100%" stopColor="#10B981" />
+                                        </linearGradient>
+                                        <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                          <stop offset="0%" stopColor="rgba(166, 28, 82, 0.15)" />
+                                          <stop offset="100%" stopColor="rgba(166, 28, 82, 0.0)" />
+                                        </linearGradient>
+                                      </defs>
+
+                                      {areaD && <path d={areaD} fill="url(#areaGrad)" />}
+                                      <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinecap="round" />
+
+                                      {points.map((pt, pIdx) => (
+                                        <circle key={pIdx} cx={pt.x} cy={pt.y} r="5" fill="#FFFFFF" stroke="#A61C52" strokeWidth="2.5" />
+                                      ))}
+                                    </svg>
+
+                                    {sareesWithCounts.map((p, idx) => {
+                                      const trialsCount = p.count;
+                                      const pct = trialsCount === 0 ? 0 : Math.min(Math.max(Math.round((trialsCount / maxCount) * 88), 10), 92);
+
+                                      return (
+                                        <div key={p.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '56px', position: 'relative', zIndex: 4 }}>
+                                          
+                                          {/* Floating Count Badge on Top */}
+                                          <div style={{ background: '#FFFFFF', border: '1.5px solid #E8DACF', padding: '2px 7px', borderRadius: '8px', fontSize: '10px', fontWeight: '800', color: trialsCount > 0 ? '#3D0A1E' : '#7A4E5F', marginBottom: '8px', boxShadow: '0 2px 8px rgba(61,10,30,0.06)', whiteSpace: 'nowrap' }}>
+                                            {trialsCount}
+                                          </div>
+
+                                          {/* Stylized Column Bar with Soft Glass Shadow */}
+                                          <div
+                                            title={`${p.name} (${p.fabric}): ${trialsCount} trials`}
+                                            style={{
+                                              width: '32px',
+                                              height: trialsCount === 0 ? '4px' : `${pct}%`,
+                                              background: trialsCount === 0 ? '#E8DACF' : colors[idx % colors.length],
+                                              borderRadius: trialsCount === 0 ? '2px' : '8px 8px 0 0',
+                                              boxShadow: trialsCount === 0 ? 'none' : '0 6px 16px rgba(61, 10, 30, 0.12)',
+                                              transition: 'all 0.4s ease'
+                                            }}
+                                          ></div>
+
+                                          {/* X-Axis Saree & Fabric Labels */}
+                                          <div style={{ marginTop: '10px', textAlign: 'center', width: '68px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#3D0A1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {p.name}
+                                            </div>
+                                            <div style={{ fontSize: '9px', color: '#7A4E5F', fontWeight: '600', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {p.fabric}
+                                            </div>
+                                          </div>
+
+                                        </div>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                              </div>
+                            </>
+                          );
                         })()}
                       </div>
-
                     </div>
-                  </div>
 
                   {/* 2. FABRIC BREAKDOWN PILLS & INSIGHT SUMMARY */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>

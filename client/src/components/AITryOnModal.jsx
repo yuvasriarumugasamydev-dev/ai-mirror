@@ -219,11 +219,12 @@ export const AITryOnModal = ({
                 src={afterImageUrl}
                 alt="AI Draped Look"
                 className="ai-single-photo"
+                style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain' }}
               />
-              <span className="slider-tag after-tag" style={{ position: 'absolute', top: '1.25rem', left: '1.25rem' }}>
+              <span className="slider-tag after-tag" style={{ position: 'absolute', top: '1.25rem', left: '1.25rem', zIndex: 3 }}>
                 <i className="fa-solid fa-sparkles"></i> AI Draped Look
               </span>
-              <span className="ai-photo-watermark-tag">
+              <span className="ai-photo-watermark-tag" style={{ zIndex: 3 }}>
                 <i className="fa-solid fa-gem"></i> VASTRA AI MIRROR
               </span>
             </div>

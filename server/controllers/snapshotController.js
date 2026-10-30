@@ -46,9 +46,31 @@ export const saveSnapshot = async (req, res) => {
 
 export const getSnapshots = async (req, res) => {
   try {
-    res.json({ success: true, count: inMemorySnapshots.length, data: inMemorySnapshots });
+    const todayDateStr = new Date().toISOString().slice(0, 10);
+    const todayCount = inMemorySnapshots.filter(s => {
+      try {
+        return new Date(s.createdAt).toISOString().slice(0, 10) === todayDateStr;
+      } catch (e) {
+        return false;
+      }
+    }).length;
+    const sareeCounts = {};
+    inMemorySnapshots.forEach(s => {
+      if (s.sareeId) {
+        sareeCounts[s.sareeId] = (sareeCounts[s.sareeId] || 0) + 1;
+      }
+    });
+
+    res.json({
+      success: true,
+      count: inMemorySnapshots.length,
+      todayCount,
+      totalCount: inMemorySnapshots.length,
+      sareeCounts,
+      data: inMemorySnapshots
+    });
   } catch (error) {
-    res.json({ success: true, count: 0, data: [] });
+    res.json({ success: true, count: 0, todayCount: 0, totalCount: 0, sareeCounts: {}, data: [] });
   }
 };
 

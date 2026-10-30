@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useMirror } from '../context/MirrorContext';
 import { playTapSound, playCountdownBeep, playCameraShutterSound } from '../utils/audio';
+import { onSareeImgError } from '../utils/sareeImageFallback';
 import { AITryOnModal } from './AITryOnModal';
 
 export const LiveMirror = () => {
@@ -798,7 +799,7 @@ export const LiveMirror = () => {
                       }
                     }}
                   >
-                    <img src={s.image || s.tryOnImage} alt={s.name} className="quick-saree-img" />
+                    <img src={s.image || s.tryOnImage} alt={s.name} className="quick-saree-img" onError={onSareeImgError(s)} />
                     <div className="quick-saree-details">
                       <h4 className="quick-saree-name">{s.name}</h4>
                       <div className="quick-saree-meta">{s.origin || s.fabric}</div>

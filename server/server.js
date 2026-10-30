@@ -4,7 +4,6 @@ import cors from 'cors';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { connectDB } from './config/db.js';
 import sareeRoutes from './routes/sareeRoutes.js';
 import snapshotRoutes from './routes/snapshotRoutes.js';
 import stylistRoutes from './routes/stylistRoutes.js';
@@ -41,6 +40,7 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 // Static Assets Serving
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/admin', express.static(path.join(__dirname, '../admin')));
 
 // API Routes
 app.use('/api/sarees', sareeRoutes);
@@ -68,22 +68,20 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
     app: 'VASTRA AI Mirror Backend',
-    stack: 'MERN (MongoDB, Express, React, Node.js)',
+    stack: 'Express + Node.js + JSON Data Store',
     lanIp,
     timestamp: new Date().toISOString()
   });
 });
 
-// Start Server & Connect MongoDB
+// Start Server
 const startServer = async () => {
-  await connectDB();
-
   const lanIp = getLanIpAddress();
 
   app.listen(PORT, '0.0.0.0', () => {
     const activeChain = tryOnManager.getActiveProviderChain();
     console.log(`===============================================`);
-    console.log(`✨ VASTRA AI MIRROR - MERN BACKEND RUNNING ✨`);
+    console.log(`✨ VASTRA AI MIRROR - BACKEND RUNNING ✨`);
     console.log(`🚀 Local Server:      http://localhost:${PORT}`);
     console.log(`📱 LAN Mobile QR:     http://${lanIp}:${PORT}/results/<id>`);
     console.log(`🔗 API Base:          http://localhost:${PORT}/api/sarees`);

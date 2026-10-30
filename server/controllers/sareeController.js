@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Saree } from '../models/Saree.js';
 import { removeGarmentBackground } from '../services/backgroundRemovalService.js';
 
 const __filename = fileURLToPath(import.meta.url);
