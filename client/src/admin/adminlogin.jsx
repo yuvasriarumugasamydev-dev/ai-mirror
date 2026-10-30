@@ -228,7 +228,7 @@ export function AdminLogin({ onBackToMirror }) {
   };
 
   // ADD PRODUCT HANDLER WITH DB & STORAGE PERSISTENCE
-  const handleAddProductSubmit = (e) => {
+  const handleAddProductSubmit = async (e) => {
     e.preventDefault();
     if (!newProductName.trim()) return;
 
@@ -236,6 +236,7 @@ export function AdminLogin({ onBackToMirror }) {
       id: `p-${Date.now()}`,
       name: newProductName.trim(),
       fabric: newProductFabric.trim() || 'Pure Silk',
+      category: 'kanjivaram', // Add category
       colorName: newProductColor.trim() || 'Silk Hue',
       colorCode: newProductColorCode || '#A61C52',
       price: newProductPrice.startsWith('₹') ? newProductPrice : `₹${newProductPrice}`,
@@ -252,15 +253,27 @@ export function AdminLogin({ onBackToMirror }) {
 
     // Send to Backend Database API
     try {
-      fetch('/api/sarees', {
+      const response = await fetch('/api/sarees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newItem)
-      }).then(() => {
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Product saved to backend:', result.data);
         // Trigger instant sync on user side
         localStorage.setItem('vastra_saree_sync', Date.now().toString());
-      }).catch(() => {});
-    } catch (err) {}
+        setToastMessage('Product Saved to Database & Catalog! ✨');
+      } else {
+        console.error('Backend save failed:', result.message);
+        setToastMessage('⚠️ Product saved locally but backend sync failed');
+      }
+    } catch (err) {
+      console.error('Error saving to backend:', err);
+      setToastMessage('⚠️ Product saved locally but backend sync failed');
+    }
 
     setIsAddModalOpen(false);
     setNewProductName('');
@@ -269,7 +282,6 @@ export function AdminLogin({ onBackToMirror }) {
     setNewProductColor('Crimson Red');
     setNewProductImage('');
 
-    setToastMessage('Product Saved to Database & Catalog! ✨');
     setTimeout(() => setToastMessage(''), 3000);
   };
 
