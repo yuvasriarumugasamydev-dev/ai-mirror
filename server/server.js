@@ -74,6 +74,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Serve Frontend Client in Production
+const clientDist = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDist));
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/assets') || req.path.startsWith('/results') || req.path.startsWith('/admin')) {
+    return next();
+  }
+  const indexPath = path.join(clientDist, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) next();
+  });
+});
+
 // Start Server
 const startServer = async () => {
   const lanIp = getLanIpAddress();
