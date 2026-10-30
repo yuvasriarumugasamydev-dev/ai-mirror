@@ -77,6 +77,12 @@ app.get('/api/health', (req, res) => {
 const clientDist = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDist));
 
+// Explicit Admin Route Handler
+app.get(['/admin', '/admin/*'], (req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
+
+// SPA Catch-all
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/assets') || req.path.startsWith('/results')) {
     return next();
