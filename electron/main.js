@@ -1,9 +1,12 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const PythonAIBridge = require('./python-bridge');
 
 let mainWindow;
 let pythonProcess;
+let pythonAI = null;
+let usePythonAI = false; // Toggle between local Python AI or cloud API
 
 // Python backend server start பண்ணும் function
 function startPythonBackend() {
@@ -52,7 +55,26 @@ function createWindow() {
 }
 
 // App ready ஆனப்போ
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Check if Python is available
+  const hasPython = await PythonAIBridge.checkPython();
+  
+  if (hasPython) {
+    console.log('✅ Python detected - Local AI available');
+    usePythonAI = true;
+    pythonAI = new PythonAIBridge();
+    
+    try {
+      await pythonAI.startPythonServer();
+      console.log('✅ Python AI server started');
+    } catch (err) {
+      console.warn('⚠️ Failed to start Python AI, using cloud API:', err.message);
+      usePythonAI = false;
+    }
+  } else {
+    console.log('⚠️ Python not found - Using cloud API only');
+  }
+  
   // Backend server start பண்ணும்
   startPythonBackend();
   
@@ -86,5 +108,8 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   if (pythonProcess) {
     pythonProcess.kill();
+  }
+  if (pythonAI) {
+    pythonAI.stopPythonServer();
   }
 });
