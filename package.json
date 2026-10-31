@@ -11,9 +11,13 @@
     "seed": "cd server && npm run seed",
     "install:server": "cd server && npm install",
     "install:client": "cd client && npm install --include=dev",
-    "install:all": "npm run install:server && npm run install:client",
+    "install:electron": "cd electron && npm install",
+    "install:all": "npm run install:server && npm run install:client && npm run install:electron",
     "dev": "concurrently \"npm run server:dev\" \"npm run client\"",
-    "start": "npm run server"
+    "start": "npm run server",
+    "electron:dev": "cd electron && npm run dev",
+    "electron:build": "npm run client:build && cd electron && npm run build:win",
+    "desktop": "npm run electron:build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -1,0 +1,66 @@
+{
+  "name": "vastra-ai-mirror-desktop",
+  "version": "1.0.0",
+  "description": "VASTRA AI Mirror - Desktop Application for Smart Saree Boutique",
+  "main": "main.js",
+  "author": "Life Changers",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "package": "npm run build:win"
+  },
+  "build": {
+    "appId": "com.lifechangers.vastra-ai-mirror",
+    "productName": "VASTRA AI Mirror",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../client/dist/**/*",
+      "../server/**/*",
+      "!../server/node_modules",
+      "../package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VASTRA AI Mirror"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "icon.png",
+      "category": "Office"
+    }
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "cross-env": "^7.0.3"
+  }
+}
