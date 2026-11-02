@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import fs from 'fs';
+import http from 'node:http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { ColabGPUProvider } from './colabProvider.js';
+import { localGenerator } from './localImageGenerator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +13,200 @@ const __dirname = path.dirname(__filename);
 export class BaseTryOnProvider {
   async generateTryOn(params) {
     throw new Error('generateTryOn must be implemented by subclass');
+  }
+}
+
+/**
+ * Local Electron Provider: Uses Sharp library for local image generation
+ * No cloud APIs needed - perfect for offline desktop app
+ */
+export class LocalElectronProvider extends BaseTryOnProvider {
+  constructor() {
+    super();
+    console.log('[LocalElectronProvider]: Initialized for offline image generation');
+  }
+
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, signal }) {
+    if (signal?.aborted) throw new Error('Job was cancelled');
+
+    console.log(`[LocalElectronProvider]: Generating local composite for '${garmentName}'...`);
+
+    try {
+      const resultPath = await localGenerator.generateTryOn(
+        personBuffer,
+        garmentBuffer,
+        {
+          garmentName,
+          width: 800,
+          height: 1200,
+          outputFileName: `tryon_${Date.now()}_${garmentName.replace(/\s+/g, '_')}.png`
+        }
+      );
+
+      console.log(`[LocalElectronProvider]: ✅ Generated image at ${resultPath}`);
+
+      return {
+        result_image_url: resultPath,
+        provider: 'local_electron'
+      };
+    } catch (error) {
+      console.error('[LocalElectronProvider Error]:', error.message);
+      throw new Error(`Local generation failed: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * Python AI Provider: Real AI using Stable Diffusion (localhost:5001)
+ * Perfect quality virtual try-on with AI inpainting - REAL TRY-ON!
+ */
+export class PythonAIProvider extends BaseTryOnProvider {
+  constructor() {
+    super();
+    this.apiUrl = process.env.PYTHON_AI_URL || 'http://localhost:5002';
+    console.log(`[PythonAIProvider]: Initialized - Real AI at ${this.apiUrl}`);
+  }
+
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, signal }) {
+    // Don't check abort initially - let Python AI complete even if frontend gives up
+    console.log(`[PythonAIProvider]: 🎨 Generating REAL AI try-on for '${garmentName}'...`);
+
+    try {
+      // Convert buffers to base64
+      const personBase64 = `data:image/jpeg;base64,${personBuffer.toString('base64')}`;
+      const garmentBase64 = `data:image/png;base64,${garmentBuffer.toString('base64')}`;
+
+      // Call Python AI server WITHOUT signal (no timeout!)
+      // Python AI can take 1-2 minutes on CPU
+      const response = await fetch(`${this.apiUrl}/tryon`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          person_image: personBase64,
+          cloth_image: garmentBase64,
+          garment_image: garmentBase64
+        })
+        // No signal - let it complete!
+      });
+
+      if (!response.ok) {
+        throw new Error(`Python AI server returned ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Python AI generation failed');
+      }
+
+      console.log(`[PythonAIProvider]: ✅ REAL AI generation complete!`);
+
+      return {
+        result_image_url: result.result_image || result.image || result.resultImage,
+        provider: 'python_ai_real'
+      };
+    } catch (error) {
+      console.error('[PythonAIProvider Error]:', error.message);
+      throw new Error(`Python AI failed: ${error.message}`);
+    }
+  }
+}
+
+export class LocalCPUTRYONProvider extends BaseTryOnProvider {
+  async generateTryOn({ personBuffer, garmentBuffer, garmentName, signal }) {
+    if (signal?.aborted) throw new Error('Job was cancelled');
+
+    const apiUrl = (process.env.LOCAL_CPU_TRYON_API_URL || 'http://127.0.0.1:5001/local-cpu-tryon').trim();
+    const requestBody = Buffer.from(JSON.stringify({
+        personImage: `data:image/jpeg;base64,${personBuffer.toString('base64')}`,
+        garmentImage: `data:image/png;base64,${garmentBuffer.toString('base64')}`
+      }));
+
+    // Local CPU diffusion can take several minutes before it sends a response.
+    // Node fetch's default dispatcher can time out while the Python model is
+    // still working, so use a local HTTP request with a longer idle timeout.
+    const response = await new Promise((resolve, reject) => {
+      const request = http.request(new URL(apiUrl), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': requestBody.length
+        }
+      }, (incoming) => {
+        const chunks = [];
+        incoming.on('data', (chunk) => chunks.push(chunk));
+        incoming.on('end', () => {
+          signal?.removeEventListener('abort', abortRequest);
+          resolve({
+            statusCode: incoming.statusCode || 500,
+            body: Buffer.concat(chunks).toString('utf8')
+          });
+        });
+        incoming.on('error', (error) => {
+          signal?.removeEventListener('abort', abortRequest);
+          reject(error);
+        });
+      });
+
+      const abortRequest = () => request.destroy(new Error('Job was cancelled'));
+      signal?.addEventListener('abort', abortRequest, { once: true });
+      request.setTimeout(31 * 60 * 1000, () => {
+        request.destroy(new Error('Local CPU AI request timed out after 31 minutes'));
+      });
+      request.on('error', (error) => {
+        signal?.removeEventListener('abort', abortRequest);
+        reject(error);
+      });
+      request.end(requestBody);
+    });
+
+    let data;
+    try {
+      data = JSON.parse(response.body);
+    } catch {
+      throw new Error(`Local CPU API returned invalid JSON (HTTP ${response.statusCode})`);
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw new Error(`Local CPU API returned HTTP ${response.statusCode}: ${(data.detail || data.message || response.body).toString().slice(0, 500)}`);
+    }
+
+    const resultImage = data.resultImage || data.result_image || data.image;
+    if (!resultImage) throw new Error('Local CPU API did not return an image');
+
+    return {
+      result_image_url: resultImage,
+      provider: 'local_cpu_diffusion'
+    };
+  }
+}
+
+/** Keeps the selected saree catalog photo intact and locally swaps only its face. */
+export class LocalFaceSwapProvider extends BaseTryOnProvider {
+  async generateTryOn({ personBuffer, targetBuffer, garmentName, signal }) {
+    if (signal?.aborted) throw new Error('Job was cancelled');
+    if (!targetBuffer) throw new Error('Selected saree model photo is required for local face swap');
+
+    const apiUrl = (process.env.LOCAL_FACE_SWAP_API_URL || 'http://127.0.0.1:5002/local-face-swap').trim();
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personImage: `data:image/jpeg;base64,${personBuffer.toString('base64')}`,
+        targetImage: `data:image/jpeg;base64,${targetBuffer.toString('base64')}`
+      }),
+      signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Local face swap API returned HTTP ${response.status}: ${errorText.slice(0, 500)}`);
+    }
+
+    const data = await response.json();
+    const resultImage = data.resultImage || data.result_image || data.image;
+    if (!resultImage) throw new Error(`Local face swap returned no image for '${garmentName}'`);
+    return { result_image_url: resultImage, provider: 'local_face_swap' };
   }
 }
 
@@ -636,6 +832,10 @@ export class LocalDrapeProvider extends BaseTryOnProvider {
  */
 export class ResilientTryOnManager {
   constructor() {
+    this.pythonAI = new PythonAIProvider();
+    this.localElectron = new LocalElectronProvider();
+    this.localCpu = new LocalCPUTRYONProvider();
+    this.localFaceSwap = new LocalFaceSwapProvider();
     this.colabGPU = new ColabGPUProvider();
     this.lcindFaceSwap = new LCIndFaceSwapProvider();
     this.idmvtonPrimary = new IDMVTONProvider('yisol/IDM-VTON');
@@ -650,11 +850,30 @@ export class ResilientTryOnManager {
    * Returns active provider chain names (names only, NEVER keys)
    */
   getActiveProviderChain() {
+    const aiProvider = (process.env.AI_PROVIDER || 'local_electron').toLowerCase().trim();
+
+    // PYTHON AI - TOP PRIORITY!
+    if (aiProvider === 'python_ai') {
+      return ['🎨 Python AI (Real Try-On - Stable Diffusion)'];
+    }
+
+    if (aiProvider === 'local_face_swap') {
+      return ['Local Face Swap (Offline)'];
+    }
+    
+    // Check for local electron mode
+    if (aiProvider === 'local_electron' || aiProvider === 'local') {
+      return ['💻 Local Electron Generator (Offline - No Cloud APIs)'];
+    }
+    if (aiProvider === 'local_cpu' || aiProvider === 'cpu') {
+      return ['🖥️ Local CPU Diffusion (Offline - Slow)'];
+    }
+
     const colabUrl = this.colabGPU.getBackendUrl();
     if (colabUrl) {
       return ['⚡ Colab GPU Real-Time Backend'];
     }
-    const aiProvider = (process.env.AI_PROVIDER || 'render').toLowerCase().trim();
+    
     const geminiModel = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
     const hasFalKey = !!process.env.FAL_KEY?.trim();
     const hasRenderUrl = !!(process.env.RENDER_BACKEND_URL?.trim() || colabUrl);
@@ -743,6 +962,12 @@ export class ResilientTryOnManager {
       return garmentPathOrUrl;
     }
 
+    if (typeof garmentPathOrUrl === 'string' && garmentPathOrUrl.startsWith('data:image/')) {
+      const commaIndex = garmentPathOrUrl.indexOf(',');
+      if (commaIndex === -1) throw new Error('Invalid data URL garment image');
+      return Buffer.from(garmentPathOrUrl.slice(commaIndex + 1), 'base64');
+    }
+
     // HTTP/HTTPS URL
     if (garmentPathOrUrl.startsWith('http://') || garmentPathOrUrl.startsWith('https://')) {
       const resp = await fetch(garmentPathOrUrl);
@@ -778,106 +1003,26 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    const colabUrl = this.colabGPU.getBackendUrl();
-    const hasColabUrl = !!colabUrl;
-    const aiProvider = (process.env.AI_PROVIDER || (hasColabUrl ? 'colab' : 'render')).toLowerCase().trim();
-    const geminiModel = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
-    const hasFalKey = !!process.env.FAL_KEY?.trim();
-    const hasRenderUrl = !!(process.env.RENDER_BACKEND_URL?.trim() || colabUrl);
-
-    const plan = [];
-
-    // 1. COLAB / RENDER GPU API - TOP PRIORITY IF CONFIGURED!
-    if (hasColabUrl || (hasRenderUrl && (aiProvider === 'render' || aiProvider === 'colab' || aiProvider === 'colab_free'))) {
-      plan.push({ name: '⚡ Colab GPU Real-Time Backend', provider: this.colabGPU });
+    // 1. Instant Face Match Preview
+    if (modelPreference === 'faceswap' || modelPreference === 'instant' || modelPreference === 'local_face_swap') {
+      return [
+        { name: '⚡ Local Face Swap (Instant Preview)', provider: this.localFaceSwap },
+        { name: 'LCInd Face API', provider: this.lcindFaceSwap }
+      ];
     }
 
-    // When Colab backend is configured, use it exclusively - NO HF_TOKEN needed!
-    if (hasColabUrl) {
-      return [{ name: '⚡ Colab GPU Real-Time Backend', provider: this.colabGPU }];
-    }
-
-    // 2. LCInd Face API
-    if (modelPreference === 'lcind' || modelPreference === 'faceswap' || (!hasColabUrl && modelPreference === 'auto')) {
-      plan.push({ name: 'LCInd Face API (Customer Face + Saree Model)', provider: this.lcindFaceSwap });
-    }
-
-    // Optional user preference if specified
-    if ((modelPreference === 'render' || modelPreference === 'colab') && hasRenderUrl) {
-      if (!plan.some((p) => p.name.includes('Render') || p.name.includes('Colab'))) {
-        plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
-      }
-    } else if (modelPreference === 'gemini') {
-      plan.push({ name: `Gemini Image Edit (${geminiModel})`, provider: this.geminiProvider });
-    } else if (modelPreference === 'fal_ai' && aiProvider === 'fal' && hasFalKey) {
-      plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
-    } else if (modelPreference === 'idm_vton') {
-      plan.push({ name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary });
-    } else if (modelPreference === 'catvton') {
-      plan.push({ name: 'CatVTON (Full-Length Overall)', provider: this.catvton });
-    } else if (modelPreference === 'image_edit') {
-      plan.push({ name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary });
-    }
-
-    // Build chain based on AI_PROVIDER
-    if (aiProvider === 'render') {
-      if (hasRenderUrl && !plan.some((p) => p.name.includes('Render') || p.name.includes('Colab'))) {
-        plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
-      }
-    } else if (aiProvider === 'colab' || aiProvider === 'colab_free') {
-      if (hasRenderUrl && !plan.some((p) => p.name.includes('Render') || p.name.includes('Colab'))) {
-        plan.push({ name: '🚀 Render Cloud API (CatVTON HD)', provider: this.colabGPU });
-      }
-      plan.push(
-        { name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary },
-        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary }
-      );
-    } else if (aiProvider === 'gemini') {
-      if (!plan.some((p) => p.name.startsWith('Gemini'))) {
-        plan.push({ name: `Gemini Image Edit (${geminiModel})`, provider: this.geminiProvider });
-      }
-      plan.push(
-        { name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary },
-        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-        { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup }
-      );
-    } else if (aiProvider === 'fal') {
-      if (hasFalKey && !plan.some((p) => p.name.startsWith('Fal.ai'))) {
-        plan.push({ name: 'Fal.ai Production (Ultra-Fast 3s)', provider: this.falAi });
-      }
-      plan.push(
-        { name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary },
-        { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
-        { name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary },
-        { name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup }
-      );
-    } else {
-      // Default: hf_free (but include Colab if available!)
-      if (hasColabUrl) {
-        plan.push({ name: '🆓 Colab Free GPU (UNLIMITED)', provider: this.colabGPU });
-      }
-      if (!plan.some((p) => p.name.includes('IDM-VTON AI'))) {
-        plan.push({ name: 'IDM-VTON AI (Photorealistic)', provider: this.idmvtonPrimary });
-      }
-      if (!plan.some((p) => p.name.includes('CatVTON'))) {
-        plan.push({ name: 'CatVTON (Full-Length Overall)', provider: this.catvton });
-      }
-      if (!plan.some((p) => p.name.includes('AI Image Edit'))) {
-        plan.push({ name: 'AI Image Edit (Qwen)', provider: this.imageEditPrimary });
-      }
-      if (!plan.some((p) => p.name.includes('Backup'))) {
-        plan.push({ name: 'IDM-VTON (Backup)', provider: this.idmvtonBackup });
-      }
-    }
-
-    return plan;
+    // 2. Real CatVTON Virtual Try-On (Default Normal Mode)
+    return [
+      { name: '🎨 Real CatVTON Try-On (Neural Saree Drape)', provider: this.pythonAI },
+      { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
+      { name: '⚡ Instant Face Preview (Fallback)', provider: this.localFaceSwap }
+    ];
   }
 
   async generateTryOn({
     personBuffer,
     garmentPathOrUrl,
+    targetImagePathOrUrl,
     garmentName = 'Silk Saree',
     category = 'saree',
     modelPreference = 'auto',
@@ -888,6 +1033,9 @@ export class ResilientTryOnManager {
   }) {
     // 1. Resolve garment image
     const rawGarmentBuffer = await this.resolveGarmentBuffer(garmentPathOrUrl);
+    const rawTargetBuffer = targetImagePathOrUrl
+      ? await this.resolveGarmentBuffer(targetImagePathOrUrl)
+      : rawGarmentBuffer;
 
     const aiProvider = (process.env.AI_PROVIDER || 'render').toLowerCase().trim();
 
@@ -904,9 +1052,11 @@ export class ResilientTryOnManager {
       try {
         console.log(`[TryOn Manager]: Attempting model '${step.name}' for ${category} '${garmentName}' (${drapeStyle}, seed: ${seed})...`);
         const isColab = step.name.includes('Colab') || step.name.includes('Render');
-        const resultUrl = await step.provider.generateTryOn({
-          personBuffer: isColab ? personBuffer : preprocessedPerson,
+        const isLocalFaceSwap = step.provider === this.localFaceSwap;
+        const providerResult = await step.provider.generateTryOn({
+          personBuffer: (isColab || isLocalFaceSwap) ? personBuffer : preprocessedPerson,
           garmentBuffer: isColab ? rawGarmentBuffer : preprocessedGarment,
+          targetBuffer: rawTargetBuffer,
           garmentName,
           category,
           drapeStyle,
@@ -914,6 +1064,15 @@ export class ResilientTryOnManager {
           seed,
           signal
         });
+
+        const resultUrl =
+          typeof providerResult === 'string'
+            ? providerResult
+            : providerResult?.result_image_url || providerResult?.resultUrl || providerResult?.url || null;
+
+        if (!resultUrl || typeof resultUrl !== 'string') {
+          throw new Error(`${step.name} returned an invalid try-on image result`);
+        }
 
         // Result is strictly from an AI model
         return { resultUrl, provider: step.name };

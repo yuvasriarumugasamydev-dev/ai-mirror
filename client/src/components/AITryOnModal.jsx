@@ -102,11 +102,11 @@ export const AITryOnModal = ({
             </div>
 
             <h3 className="ai-loading-title">
-              {status === 'queued' ? 'Queueing Virtual Try-On Job...' : 'Synthesizing Your AI Draped Look...'}
+              {status === 'queued' ? 'Preparing Your Saree Photo...' : 'Applying Your Face to the Saree Look...'}
             </h3>
 
             <p className="ai-loading-sub">
-              Draping <strong>{saree?.name || 'Selected Saree'}</strong> in <strong>{currentDrapeStyle}</strong> style...
+              Using the selected <strong>{saree?.name || 'saree'}</strong> catalog photo...
             </p>
 
             <div className="ai-loading-bar-wrapper">
@@ -115,7 +115,7 @@ export const AITryOnModal = ({
 
             <div className="ai-server-notice-box">
               <i className="fa-solid fa-circle-info"></i>
-              <span>Prompt-guided synthesis active. Replacing top & bottom with complete authentic saree & blouse.</span>
+              <span>The selected saree photo stays unchanged; only the captured face is blended in locally.</span>
             </div>
 
             <div className="ai-cancel-action-row">
@@ -246,6 +246,26 @@ export const AITryOnModal = ({
               </div>
 
               {/* Try again with another style */}
+                            {/* Quick Switch between CatVTON and Instant Face Preview */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', margin: '14px 0 6px 0' }}>
+                <button
+                  type="button"
+                  className="btn-style-chip"
+                  onClick={() => onRetryWithModel && onRetryWithModel('catvton')}
+                  style={{ fontWeight: '600', padding: '6px 14px' }}
+                >
+                  <i className="fa-solid fa-wand-magic-sparkles text-orange"></i> Switch to Real CatVTON Drape
+                </button>
+                <button
+                  type="button"
+                  className="btn-style-chip"
+                  onClick={() => onRetryWithModel && onRetryWithModel('faceswap')}
+                  style={{ fontWeight: '600', padding: '6px 14px' }}
+                >
+                  <i className="fa-solid fa-bolt" style={{ color: '#E67E22' }}></i> Switch to Instant Face Match
+                </button>
+              </div>
+
               <div className="ai-style-retry-block">
                 <span className="ai-style-retry-label">Try again with another style:</span>
                 <div className="ai-style-chips-row">

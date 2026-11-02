@@ -62,7 +62,7 @@ export const LiveMirror = () => {
   const [beforePhotoUrl, setBeforePhotoUrl] = useState(null);
   const [afterPhotoUrl, setAfterPhotoUrl] = useState(null);
   const [latestCompletedLook, setLatestCompletedLook] = useState(null);
-  const [modelPreference, setModelPreference] = useState('auto');
+  const [modelPreference, setModelPreference] = useState('catvton');
   const [lastUsedModel, setLastUsedModel] = useState('AI Virtual Try-On');
   const activeJobIdRef = useRef(null);
   const pollingTimerRef = useRef(null);
@@ -78,12 +78,16 @@ export const LiveMirror = () => {
 
   const resetIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => {
-      console.log('[Kiosk Security]: 60s inactivity reached. Resetting session for privacy.');
+    const handleIdleTimeout = () => {
+      // Local CPU image generation can take several minutes. Do not treat a
+      // user waiting for the result as an abandoned kiosk session.
       if (activeJobIdRef.current) {
-        fetch(`/api/tryon/${activeJobIdRef.current}`, { method: 'DELETE' }).catch(() => {});
-        activeJobIdRef.current = null;
+        console.log('[Kiosk Security]: Try-on is still running; deferring the idle reset.');
+        idleTimerRef.current = setTimeout(handleIdleTimeout, 60000);
+        return;
       }
+
+      console.log('[Kiosk Security]: 60s inactivity reached. Resetting session for privacy.');
       if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
 
@@ -93,7 +97,9 @@ export const LiveMirror = () => {
       setAfterPhotoUrl(null);
       setTryOnStatus('idle');
       capturedBlobRef.current = null;
-    }, 60000); // 60 seconds
+    };
+
+    idleTimerRef.current = setTimeout(handleIdleTimeout, 60000); // 60 seconds
   }, []);
 
   useEffect(() => {
@@ -456,13 +462,15 @@ export const LiveMirror = () => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       setElapsedSeconds(elapsed);
 
-      if (elapsed >= 300) {
+      // Local CPU diffusion needs substantially longer than hosted try-on
+      // providers, especially on the first run while the model is downloaded.
+      if (elapsed >= 1800) {
         clearJobTimers();
         if (activeJobIdRef.current) {
           fetch(`/api/tryon/${activeJobIdRef.current}`, { method: 'DELETE' }).catch(() => {});
         }
         setTryOnStatus('failed');
-        setAiError('AI generation timed out after 5 minutes. The model might be busy. Please retry.');
+        setAiError('Local AI generation timed out after 30 minutes. Check that the model finished downloading and that your computer has enough memory, then retry.');
       }
     }, 1000);
 
@@ -472,8 +480,17 @@ export const LiveMirror = () => {
 
       // Prioritize isolated garment cloth cutout for AI try-on so it never drapes another model's face/body
       const garmentImageUrl = selectedSaree?.tryOnImage || selectedSaree?.image || '/assets/tryon_saree-1.png';
-      formData.append('garment_url', garmentImageUrl);
-      formData.append('try_on_image_url', garmentImageUrl);
+      const sareeModelImageUrl = selectedSaree?.image || garmentImageUrl;
+      if (garmentImageUrl.startsWith('data:')) {
+        const garmentBlob = await fetch(garmentImageUrl).then((res) => res.blob());
+        formData.append('garment_image', garmentBlob, 'saree_garment.png');
+      } else {
+        formData.append('garment_url', garmentImageUrl);
+        formData.append('try_on_image_url', garmentImageUrl);
+      }
+      // Local face-swap uses the complete selected catalog photo as its base,
+      // keeping the saree, pose, and body unchanged while replacing the face.
+      formData.append('target_image_url', sareeModelImageUrl);
 
       const activeDrape = chosenDrapeStyle || drapeStyle || 'Nivi';
       const activeSeed = chosenSeed !== null && chosenSeed !== undefined ? chosenSeed : Math.floor(Math.random() * 999999);
@@ -485,10 +502,25 @@ export const LiveMirror = () => {
       formData.append('denoise_steps', '35');
       formData.append('seed', activeSeed.toString());
 
-      const response = await fetch('/api/tryon', {
-        method: 'POST',
-        body: formData
-      });
+      let response = null;
+      try {
+        response = await fetch('/api/tryon', {
+          method: 'POST',
+          body: formData
+        });
+      } catch {
+        // The first request can fail if the local backend is briefly restarting.
+        // Retry once instead of showing a raw browser "Failed to fetch" message.
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        try {
+          response = await fetch('/api/tryon', {
+            method: 'POST',
+            body: formData
+          });
+        } catch {
+          throw new Error('Unable to connect to the image-generation server. Please wait until the app finishes starting, then retry.');
+        }
+      }
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
@@ -523,7 +555,16 @@ export const LiveMirror = () => {
           } else if ((pollData.status === 'completed' || pollData.status === 'done') && pollData.result_image_url) {
             clearJobTimers();
             activeJobIdRef.current = null;
-            setAfterPhotoUrl(pollData.result_image_url);
+            const resultUrl =
+              typeof pollData.result_image_url === 'string'
+                ? pollData.result_image_url
+                : pollData.result_image_url?.result_image_url || pollData.result_image_url?.resultUrl || pollData.result_image_url?.url || null;
+            if (!resultUrl) {
+              setTryOnStatus('failed');
+              setAiError('The generated try-on result was invalid. Please retry.');
+              return;
+            }
+            setAfterPhotoUrl(resultUrl);
             setLastUsedModel(pollData.provider || 'AI Virtual Try-On');
             setTryOnStatus('completed');
 
@@ -561,7 +602,14 @@ export const LiveMirror = () => {
     } catch (err) {
       clearJobTimers();
       setTryOnStatus('failed');
-      setAiError(err.message || 'Unable to connect to AI server. Please check your connection.');
+      const message = typeof err?.message === 'string'
+        ? err.message
+        : '';
+      if (/failed to fetch|networkerror|load failed|typeerror/i.test(message)) {
+        setAiError('Unable to connect to the image-generation server. Please wait until the app finishes starting, then retry.');
+      } else {
+        setAiError(message || 'Unable to connect to the image-generation server. Please check your connection.');
+      }
     }
   };
 
@@ -717,6 +765,66 @@ export const LiveMirror = () => {
             )}
 
             {/* 10. Shutter & Upload Actions Container */}
+                        {/* Mode Switcher: Real CatVTON vs Instant Face Preview */}
+            <div
+              className="tryon-mode-toggle-wrap"
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '10px',
+                marginBottom: '12px',
+                zIndex: 10
+              }}
+            >
+              <button
+                type="button"
+                className="tryon-mode-pill"
+                onClick={() => setModelPreference('catvton')}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '24px',
+                  border: modelPreference === 'catvton' ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.3)',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  background: modelPreference === 'catvton' ? 'linear-gradient(135deg, #8A0035, #4A001D)' : 'rgba(15,15,20,0.7)',
+                  color: modelPreference === 'catvton' ? '#FFFFFF' : '#D0D0D0',
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: modelPreference === 'catvton' ? '0 4px 15px rgba(138,0,53,0.5)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="fa-solid fa-wand-magic-sparkles" style={{ color: modelPreference === 'catvton' ? '#FFD700' : '#E0E0E0' }}></i>
+                Real CatVTON Try-On
+              </button>
+
+              <button
+                type="button"
+                className="tryon-mode-pill"
+                onClick={() => setModelPreference('faceswap')}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '24px',
+                  border: modelPreference === 'faceswap' ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.3)',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  background: modelPreference === 'faceswap' ? 'linear-gradient(135deg, #8A0035, #4A001D)' : 'rgba(15,15,20,0.7)',
+                  color: modelPreference === 'faceswap' ? '#FFFFFF' : '#D0D0D0',
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: modelPreference === 'faceswap' ? '0 4px 15px rgba(138,0,53,0.5)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="fa-solid fa-bolt" style={{ color: modelPreference === 'faceswap' ? '#FFD700' : '#E0E0E0' }}></i>
+                Instant Face Preview
+              </button>
+            </div>
+
             <div className="mirror-shutter-container">
               {isCameraActive && !uploadedPhotoUrl && (
                 <button
