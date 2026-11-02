@@ -6,6 +6,7 @@ import { removeGarmentBackground } from '../services/backgroundRemovalService.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const LOCAL_SAREES_PATH = path.resolve(__dirname, '../data/sarees.json');
+const CLIENT_SAREES_PATH = path.resolve(__dirname, '../../client/src/data/sarees.json');
 
 /**
  * POST /api/sarees
@@ -13,16 +14,21 @@ const LOCAL_SAREES_PATH = path.resolve(__dirname, '../data/sarees.json');
  */
 export const addSaree = async (req, res) => {
   try {
+    const rawPrice = String(req.body.price || '₹0');
+    const numericPrice = parseInt(rawPrice.replace(/[₹,]/g, '')) || 0;
+    const defaultImg = '/assets/image_20261013_123805.jpg';
+
     const newSaree = {
       sareeId: req.body.id || `saree-${Date.now()}`,
       name: req.body.name,
       category: req.body.category || 'kanjivaram',
       isBridal: req.body.isBridal || false,
-      price: parseInt(req.body.price?.replace(/[₹,]/g, '')) || 0,
-      priceFormatted: req.body.price || '₹0',
+      price: numericPrice,
+      priceFormatted: rawPrice.startsWith('₹') ? rawPrice : `₹${rawPrice}`,
       fabric: req.body.fabric || 'Pure Silk',
-      image: req.body.image || '/assets/placeholder.jpg',
-      tryOnImage: req.body.image || '/assets/placeholder.jpg',
+      origin: req.body.fabric || 'Pure Silk',
+      image: req.body.image || defaultImg,
+      tryOnImage: req.body.image || defaultImg,
       accentColor: req.body.colorCode || '#A61C52',
       rating: 4.8,
       reviewsCount: 0,
@@ -36,9 +42,12 @@ export const addSaree = async (req, res) => {
     // Add new saree to the beginning
     sarees.unshift(newSaree);
     
-    // Save to JSON file
+    // Save to JSON file (both server and client if exists)
     try {
       fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+      if (fs.existsSync(path.dirname(CLIENT_SAREES_PATH))) {
+        try { fs.writeFileSync(CLIENT_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8'); } catch (ce) {}
+      }
       console.log(`[addSaree]: Successfully added '${newSaree.name}' to catalog`);
     } catch (e) {
       console.error('[addSaree]: Error writing to sarees.json:', e.message);
@@ -65,7 +74,7 @@ export const deleteSaree = async (req, res) => {
     
     // Find and remove the saree
     const initialLength = sarees.length;
-    sarees = sarees.filter(s => s.sareeId !== id && s._id !== id);
+    sarees = sarees.filter(s => s.sareeId !== id && s._id !== id && s.id !== id);
     
     if (sarees.length === initialLength) {
       return res.status(404).json({ success: false, message: 'Saree not found' });
@@ -74,6 +83,9 @@ export const deleteSaree = async (req, res) => {
     // Save to JSON file
     try {
       fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+      if (fs.existsSync(path.dirname(CLIENT_SAREES_PATH))) {
+        try { fs.writeFileSync(CLIENT_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8'); } catch (ce) {}
+      }
       console.log(`[deleteSaree]: Successfully deleted saree with id '${id}'`);
     } catch (e) {
       console.error('[deleteSaree]: Error writing to sarees.json:', e.message);
@@ -125,13 +137,7 @@ export const getSareeById = async (req, res) => {
   try {
     const { id } = req.params;
     const sarees = getLocalSareesData();
-    let saree = sarees.find(s => s.sareeId === id || s._id === id);
-
-    if (!saree) {
-      try {
-        saree = await Saree.findOne({ sareeId: id });
-      } catch (e) {}
-    }
+    let saree = sarees.find(s => s.sareeId === id || s._id === id || s.id === id);
 
     if (!saree) {
       return res.status(404).json({ success: false, message: 'Saree not found' });
@@ -150,55 +156,48 @@ export const generateSareeTryOnImage = async (req, res) => {
   try {
     const { id } = req.params;
     const sarees = getLocalSareesData();
-    let saree = sarees.find(s => s.sareeId === id || s._id === id);
-    if (!saree) {
-      try {
-        saree = await Saree.findOne({ sareeId: id });
-      } catch (e) {}
-    }
-    if (!saree) {
-      return res.status(404).json({ success: false, message: 'Saree not found' });
+    const sareeIndex = sarees.findIndex(s => s.sareeId === id || s._id === id || s.id === id);
+
+    if (sareeIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Saree not found in catalog' });
     }
 
+    const saree = sarees[sareeIndex];
     const imagePath = saree.image;
-    let buffer = null;
 
-    if (imagePath.startsWith('/') || !imagePath.startsWith('http')) {
-      const cleanRel = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-      const localFile = path.resolve(__dirname, '../../', cleanRel);
-      if (fs.existsSync(localFile)) {
-        buffer = fs.readFileSync(localFile);
-      }
+    let absoluteImagePath;
+    if (imagePath.startsWith('/assets/')) {
+      absoluteImagePath = path.join(__dirname, '../../assets', path.basename(imagePath));
     } else {
-      const resp = await fetch(imagePath);
-      const ab = await resp.arrayBuffer();
-      buffer = Buffer.from(ab);
+      absoluteImagePath = path.resolve(__dirname, '..', imagePath.replace(/^\//, ''));
     }
 
-    if (!buffer) {
-      return res.status(400).json({ success: false, message: 'Could not load original saree image' });
+    if (!fs.existsSync(absoluteImagePath)) {
+      return res.status(400).json({ success: false, message: `Original image not found: ${absoluteImagePath}` });
     }
 
-    console.log(`[Saree Controller]: Removing background for '${saree.name}'...`);
-    const cleanPngBuffer = await removeGarmentBackground(buffer);
+    console.log(`[generateSareeTryOnImage]: Processing image background removal for ${saree.name}...`);
+    const transparentDataUri = await removeGarmentBackground(absoluteImagePath);
 
-    const assetsDir = path.resolve(__dirname, '../../assets');
-    if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
-
-    const fileName = `tryon_${saree.sareeId}.png`;
-    const destPath = path.join(assetsDir, fileName);
-    fs.writeFileSync(destPath, cleanPngBuffer);
-
-    const tryOnImageUrl = `/assets/${fileName}`;
-    if (saree.save) {
-      saree.tryOnImage = tryOnImageUrl;
-      await saree.save();
+    const outputDir = path.join(__dirname, '../../assets/tryon');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
     }
+
+    const filename = `tryon_${id}_${Date.now()}.png`;
+    const outputPath = path.join(outputDir, filename);
+
+    const base64Data = transparentDataUri.replace(/^data:image\/\w+;base64,/, '');
+    fs.writeFileSync(outputPath, Buffer.from(base64Data, 'base64'));
+
+    const publicUrl = `/assets/tryon/${filename}`;
+    sarees[sareeIndex].tryOnImage = publicUrl;
+    fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
 
     return res.json({
       success: true,
-      message: 'Background removed successfully',
-      tryOnImage: tryOnImageUrl
+      message: 'Clean try-on image generated successfully',
+      tryOnImage: publicUrl
     });
   } catch (error) {
     console.error('[generateSareeTryOnImage error]:', error.message);
@@ -208,34 +207,32 @@ export const generateSareeTryOnImage = async (req, res) => {
 
 /**
  * PUT /api/sarees/:id/tryon-image
- * Update tryOnImage URL directly from admin
+ * Updates or overrides tryOnImage manually
  */
 export const updateSareeTryOnImage = async (req, res) => {
   try {
     const { id } = req.params;
     const { tryOnImage } = req.body;
 
-    // Update local JSON file
-    const sarees = getLocalSareesData();
-    const idx = sarees.findIndex(s => s.sareeId === id || s._id === id);
-    if (idx !== -1) {
-      sarees[idx].tryOnImage = tryOnImage;
-      try {
-        fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
-      } catch (e) {
-        console.error('Error writing local sarees.json:', e);
-      }
+    if (!tryOnImage) {
+      return res.status(400).json({ success: false, message: 'tryOnImage URL is required' });
     }
 
-    try {
-      let saree = await Saree.findOne({ sareeId: id });
-      if (saree) {
-        saree.tryOnImage = tryOnImage;
-        await saree.save();
-      }
-    } catch (e) {}
+    const sarees = getLocalSareesData();
+    const sareeIndex = sarees.findIndex(s => s.sareeId === id || s._id === id || s.id === id);
 
-    return res.json({ success: true, message: 'Try-on image updated', tryOnImage });
+    if (sareeIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Saree not found' });
+    }
+
+    sarees[sareeIndex].tryOnImage = tryOnImage;
+    fs.writeFileSync(LOCAL_SAREES_PATH, JSON.stringify(sarees, null, 2), 'utf-8');
+
+    return res.json({
+      success: true,
+      message: 'tryOnImage updated successfully',
+      data: sarees[sareeIndex]
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

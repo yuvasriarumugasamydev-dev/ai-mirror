@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { TRANSLATIONS } from '../utils/translations';
 import { playTapSound, playChimeAlert } from '../utils/audio';
 import { fetchSarees, saveSnapshotAPI, requestStylistAPI } from '../services/api';
@@ -30,14 +30,73 @@ export const MirrorProvider = ({ children }) => {
   const [activeQRSnap, setActiveQRSnap] = useState(null);
   const [showStylistToast, setShowStylistToast] = useState(false);
 
-  // Load from Express backend on mount
-  useEffect(() => {
-    fetchSarees('all').then(data => {
-      if (Array.isArray(data)) {
+  // Synchronize sarees from backend API and localStorage
+  const reloadSarees = useCallback(async () => {
+    let loadedFromApi = false;
+    try {
+      const data = await fetchSarees('all');
+      if (Array.isArray(data) && data.length > 0) {
         setSarees(data);
+        loadedFromApi = true;
       }
-    });
+    } catch (e) {
+      console.warn('[MirrorContext] Failed to fetch from backend, checking localStorage:', e);
+    }
+
+    // Direct synchronous sync from admin localStorage if backend not reachable or has fewer items
+    try {
+      const saved = localStorage.getItem('vastra_admin_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (!loadedFromApi) {
+            const formatted = parsed.map(p => ({
+              sareeId: p.id || p.sareeId,
+              id: p.id || p.sareeId,
+              name: p.name,
+              origin: p.fabric || 'Pure Silk',
+              fabric: p.fabric || 'Pure Silk',
+              category: p.category || 'kanjivaram',
+              priceFormatted: p.price ? (String(p.price).startsWith('₹') ? p.price : `₹${p.price}`) : '₹0',
+              price: parseInt(String(p.price || 0).replace(/[₹,]/g, '')) || 0,
+              image: p.image || '/assets/image_20261013_123805.jpg',
+              tryOnImage: p.image || '/assets/image_20261013_123805.jpg',
+              accentColor: p.colorCode || '#A61C52',
+              isBridal: false
+            }));
+            setSarees(formatted);
+          }
+        }
+      }
+    } catch (err) {}
   }, []);
+
+  // Initial load and global event listeners for instant sync
+  useEffect(() => {
+    reloadSarees();
+
+    const handleSync = () => reloadSarees();
+    const handleStorage = (e) => {
+      if (e.key === 'vastra_saree_sync' || e.key === 'vastra_admin_products') {
+        reloadSarees();
+      }
+    };
+
+    window.addEventListener('vastra_saree_sync', handleSync);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('vastra_saree_sync', handleSync);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [reloadSarees]);
+
+  // Re-sync whenever user returns to mirror or catalog
+  useEffect(() => {
+    if (currentTab === 'mirror' || currentTab === 'catalog') {
+      reloadSarees();
+    }
+  }, [currentTab, reloadSarees]);
 
   const [isSizeScanOpen, setIsSizeScanOpen] = useState(false);
 
@@ -91,6 +150,7 @@ export const MirrorProvider = ({ children }) => {
     <MirrorContext.Provider
       value={{
         sarees,
+        reloadSarees,
         selectedSaree,
         setSelectedSaree,
         selectSaree,

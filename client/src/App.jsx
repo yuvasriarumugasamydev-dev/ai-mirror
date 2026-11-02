@@ -13,7 +13,7 @@ import { SizeScanModal } from './components/SizeScanModal';
 import AdminLogin from './admin/adminlogin'; // Friend's admin page
 
 export function App() {
-  const { isWelcomeActive, currentTab, setCurrentTab, lang, t, isSizeScanOpen, setIsSizeScanOpen } = useMirror();
+  const { isWelcomeActive, currentTab, setCurrentTab, lang, t, isSizeScanOpen, setIsSizeScanOpen, reloadSarees } = useMirror();
   
   // Check if admin route
   const [isAdminRoute, setIsAdminRoute] = React.useState(() => {
@@ -46,6 +46,10 @@ export function App() {
     }
     setIsAdminRoute(false);
     setCurrentTab('mirror');
+    if (typeof reloadSarees === 'function') {
+      reloadSarees();
+    }
+    window.dispatchEvent(new CustomEvent('vastra_saree_sync'));
   };
 
   // If admin route, show admin panel in full screen
