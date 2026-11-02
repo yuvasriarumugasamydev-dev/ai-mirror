@@ -1013,8 +1013,8 @@ export class ResilientTryOnManager {
 
     // 2. Real CatVTON Virtual Try-On (Default Normal Mode)
     return [
-      { name: '🎨 Real CatVTON Try-On (Neural Saree Drape)', provider: this.pythonAI },
-      { name: 'CatVTON (Full-Length Overall)', provider: this.catvton },
+      { name: '🎨 CatVTON AI (Neural Saree Drape)', provider: this.catvton },
+      { name: 'Python AI Try-On', provider: this.pythonAI },
       { name: '⚡ Instant Face Preview (Fallback)', provider: this.localFaceSwap }
     ];
   }
