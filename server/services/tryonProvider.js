@@ -95,14 +95,19 @@ export class PythonAIProvider extends BaseTryOnProvider {
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.error || 'Python AI generation failed');
+      // Python API returns { status: 'success', result_image: 'data:...' }
+      const isSuccess = result.success === true || result.status === 'success';
+      if (!isSuccess) {
+        throw new Error(result.error || result.detail || 'Python AI generation failed');
       }
 
-      console.log(`[PythonAIProvider]: ✅ REAL AI generation complete!`);
+      const resultImageUrl = result.result_image || result.resultImage || result.image;
+      if (!resultImageUrl) throw new Error('Python AI returned no image in response');
+
+      console.log('[PythonAIProvider]: REAL AI full-body try-on complete!');
 
       return {
-        result_image_url: result.result_image || result.image || result.resultImage,
+        result_image_url: resultImageUrl,
         provider: 'python_ai_real'
       };
     } catch (error) {
@@ -1003,7 +1008,9 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // 1. Instant Face Match Preview
+    const hasHFToken = !!(process.env.HF_TOKEN && process.env.HF_TOKEN.trim());
+
+    // 1. Instant Face Match Preview (faceswap mode)
     if (modelPreference === 'faceswap' || modelPreference === 'instant' || modelPreference === 'local_face_swap') {
       return [
         { name: '⚡ Local Face Swap (Instant Preview)', provider: this.localFaceSwap },
@@ -1012,9 +1019,19 @@ export class ResilientTryOnManager {
     }
 
     // 2. Real CatVTON Virtual Try-On (Default Normal Mode)
+    // If HF_TOKEN is present → try CatVTON first, then Python AI fallback
+    // If no HF_TOKEN → go straight to Python AI (Leffa full-body) which works without token
+    if (hasHFToken) {
+      return [
+        { name: '🎨 CatVTON AI (Neural Saree Drape)', provider: this.catvton },
+        { name: '🎨 Python AI Try-On (Leffa Full-Body)', provider: this.pythonAI },
+        { name: '⚡ Instant Face Preview (Fallback)', provider: this.localFaceSwap }
+      ];
+    }
+
+    // No HF_TOKEN → use Python AI (Leffa) directly for full-body try-on
     return [
-      { name: '🎨 CatVTON AI (Neural Saree Drape)', provider: this.catvton },
-      { name: 'Python AI Try-On', provider: this.pythonAI },
+      { name: '🎨 Python AI Try-On (Leffa Full-Body)', provider: this.pythonAI },
       { name: '⚡ Instant Face Preview (Fallback)', provider: this.localFaceSwap }
     ];
   }
