@@ -1008,10 +1008,10 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // High-Quality Instant Face-Drape Engine (1-2 seconds, zero-cut, 100% original saree drape)
+    // 100% In-House Real Body AI Drape (CatVTON/Leffa/Diffusion) + Fast Face-Swap Fallback
     return [
-      { name: '✨ Local Instant AI Saree Try-On', provider: this.localFaceSwap },
-      { name: 'LCInd Face API', provider: this.lcindFaceSwap }
+      { name: '🎨 Real In-House AI Body Drape (CatVTON/Leffa)', provider: this.pythonAI },
+      { name: '✨ Local Instant Face Swap', provider: this.localFaceSwap }
     ];
   }
 
