@@ -62,7 +62,7 @@ export const LiveMirror = () => {
   const [beforePhotoUrl, setBeforePhotoUrl] = useState(null);
   const [afterPhotoUrl, setAfterPhotoUrl] = useState(null);
   const [latestCompletedLook, setLatestCompletedLook] = useState(null);
-  const [modelPreference, setModelPreference] = useState('catvton');
+  const [modelPreference, setModelPreference] = useState('faceswap');
   const [lastUsedModel, setLastUsedModel] = useState('AI Virtual Try-On');
   const activeJobIdRef = useRef(null);
   const pollingTimerRef = useRef(null);
@@ -776,53 +776,25 @@ export const LiveMirror = () => {
                 zIndex: 10
               }}
             >
-              <button
-                type="button"
-                className="tryon-mode-pill"
-                onClick={() => setModelPreference('catvton')}
+              <div
                 style={{
-                  padding: '7px 16px',
+                  padding: '8px 24px',
                   borderRadius: '24px',
-                  border: modelPreference === 'catvton' ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.3)',
-                  fontSize: '12px',
+                  border: '1.5px solid #FFD700',
+                  fontSize: '13px',
                   fontWeight: '700',
-                  cursor: 'pointer',
-                  background: modelPreference === 'catvton' ? 'linear-gradient(135deg, #8A0035, #4A001D)' : 'rgba(15,15,20,0.7)',
-                  color: modelPreference === 'catvton' ? '#FFFFFF' : '#D0D0D0',
+                  background: 'linear-gradient(135deg, #8A0035, #4A001D)',
+                  color: '#FFFFFF',
                   backdropFilter: 'blur(8px)',
-                  boxShadow: modelPreference === 'catvton' ? '0 4px 15px rgba(138,0,53,0.5)' : 'none',
+                  boxShadow: '0 4px 15px rgba(138,0,53,0.5)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '8px'
                 }}
               >
-                <i className="fa-solid fa-wand-magic-sparkles" style={{ color: modelPreference === 'catvton' ? '#FFD700' : '#E0E0E0' }}></i>
-                Real CatVTON Try-On
-              </button>
-
-              <button
-                type="button"
-                className="tryon-mode-pill"
-                onClick={() => setModelPreference('faceswap')}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: '24px',
-                  border: modelPreference === 'faceswap' ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.3)',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  background: modelPreference === 'faceswap' ? 'linear-gradient(135deg, #8A0035, #4A001D)' : 'rgba(15,15,20,0.7)',
-                  color: modelPreference === 'faceswap' ? '#FFFFFF' : '#D0D0D0',
-                  backdropFilter: 'blur(8px)',
-                  boxShadow: modelPreference === 'faceswap' ? '0 4px 15px rgba(138,0,53,0.5)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <i className="fa-solid fa-bolt" style={{ color: modelPreference === 'faceswap' ? '#FFD700' : '#E0E0E0' }}></i>
-                Instant Face Preview
-              </button>
+                <i className="fa-solid fa-wand-magic-sparkles" style={{ color: '#FFD700' }}></i>
+                Instant AI Saree Try-On (100% In-House)
+              </div>
             </div>
 
             <div className="mirror-shutter-container">

@@ -1008,31 +1008,10 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    const hasHFToken = !!(process.env.HF_TOKEN && process.env.HF_TOKEN.trim());
-
-    // 1. Instant Face Match Preview (faceswap mode)
-    if (modelPreference === 'faceswap' || modelPreference === 'instant' || modelPreference === 'local_face_swap') {
-      return [
-        { name: '⚡ Local Face Swap (Instant Preview)', provider: this.localFaceSwap },
-        { name: 'LCInd Face API', provider: this.lcindFaceSwap }
-      ];
-    }
-
-    // 2. Real CatVTON Virtual Try-On (Default Normal Mode)
-    // If HF_TOKEN is present → try CatVTON first, then Python AI fallback
-    // If no HF_TOKEN → go straight to Python AI (Leffa full-body) which works without token
-    if (hasHFToken) {
-      return [
-        { name: '🎨 CatVTON AI (Neural Saree Drape)', provider: this.catvton },
-        { name: '🎨 Python AI Try-On (Leffa Full-Body)', provider: this.pythonAI },
-        { name: '⚡ Instant Face Preview (Fallback)', provider: this.localFaceSwap }
-      ];
-    }
-
-    // No HF_TOKEN → use Python AI (Leffa) directly for full-body try-on
+    // 100% Local Fast AI Face Swap & Drape (In-House, No 3rd-party Cloud Quotas)
     return [
-      { name: '🎨 Python AI Try-On (Leffa Full-Body)', provider: this.pythonAI },
-      { name: '⚡ Instant Face Preview (Fallback)', provider: this.localFaceSwap }
+      { name: '✨ Local AI Saree Try-On', provider: this.localFaceSwap },
+      { name: 'LCInd Face API', provider: this.lcindFaceSwap }
     ];
   }
 
