@@ -32,40 +32,37 @@ export const MirrorProvider = ({ children }) => {
 
   // Synchronize sarees from backend API and localStorage
   const reloadSarees = useCallback(async () => {
-    let loadedFromApi = false;
     try {
       const data = await fetchSarees('all');
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setSarees(data);
-        loadedFromApi = true;
+        return;
       }
     } catch (e) {
-      console.warn('[MirrorContext] Failed to fetch from backend, checking localStorage:', e);
+      console.warn('[MirrorContext] Backend fetch failed, checking localStorage:', e);
     }
 
-    // Direct synchronous sync from admin localStorage if backend not reachable or has fewer items
+    // Fallback to localStorage only if backend is completely down
     try {
       const saved = localStorage.getItem('vastra_admin_products');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          if (!loadedFromApi) {
-            const formatted = parsed.map(p => ({
-              sareeId: p.id || p.sareeId,
-              id: p.id || p.sareeId,
-              name: p.name,
-              origin: p.fabric || 'Pure Silk',
-              fabric: p.fabric || 'Pure Silk',
-              category: p.category || 'kanjivaram',
-              priceFormatted: p.price ? (String(p.price).startsWith('₹') ? p.price : `₹${p.price}`) : '₹0',
-              price: parseInt(String(p.price || 0).replace(/[₹,]/g, '')) || 0,
-              image: p.image || '/assets/image_20261013_123805.jpg',
-              tryOnImage: p.image || '/assets/image_20261013_123805.jpg',
-              accentColor: p.colorCode || '#A61C52',
-              isBridal: false
-            }));
-            setSarees(formatted);
-          }
+        if (Array.isArray(parsed)) {
+          const formatted = parsed.map(p => ({
+            sareeId: p.id || p.sareeId,
+            id: p.id || p.sareeId,
+            name: p.name,
+            origin: p.fabric || 'Pure Silk',
+            fabric: p.fabric || 'Pure Silk',
+            category: p.category || 'kanjivaram',
+            priceFormatted: p.price ? (String(p.price).startsWith('₹') ? p.price : `₹${p.price}`) : '₹0',
+            price: parseInt(String(p.price || 0).replace(/[₹,]/g, '')) || 0,
+            image: p.image || '/assets/image_20261013_123805.jpg',
+            tryOnImage: p.image || '/assets/image_20261013_123805.jpg',
+            accentColor: p.colorCode || '#A61C52',
+            isBridal: false
+          }));
+          setSarees(formatted);
         }
       }
     } catch (err) {}

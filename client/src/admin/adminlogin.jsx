@@ -297,11 +297,36 @@ export function AdminLogin({ onBackToMirror }) {
     try {
       localStorage.setItem('vastra_admin_products', JSON.stringify(updated));
       localStorage.setItem('vastra_saree_sync', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('vastra_saree_sync', { detail: { timestamp: Date.now() } }));
 
       // Await backend deletion
       const res = await fetch(`/api/sarees/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
       if (!res.ok && deleteConfirmItem.mongoId && deleteConfirmItem.mongoId !== targetId) {
         await fetch(`/api/sarees/${encodeURIComponent(deleteConfirmItem.mongoId)}`, { method: 'DELETE' });
+      }
+
+      // Re-fetch backend database to ensure exact state sync
+      const refreshed = await fetch('/api/sarees');
+      if (refreshed.ok) {
+        const rData = await refreshed.json();
+        if (rData && rData.success && Array.isArray(rData.data)) {
+          const syncFormatted = rData.data.map((item, idx) => ({
+            id: item.sareeId || item.id || (item._id ? String(item._id) : `p-${idx}`),
+            sareeId: item.sareeId || item.id,
+            mongoId: item._id ? String(item._id) : '',
+            name: item.name || 'Handcrafted Saree',
+            fabric: item.fabric || 'Pure Silk',
+            colorName: item.fabric || 'Silk Hue',
+            colorCode: item.accentColor || '#A61C52',
+            price: item.priceFormatted || (typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : '₹15,000'),
+            rawPrice: item.price || 15000,
+            image: item.image,
+            status: 'In Showroom',
+            drapes: `${item.drapes || 0} Drapes`
+          }));
+          setProducts(syncFormatted);
+          localStorage.setItem('vastra_admin_products', JSON.stringify(syncFormatted));
+        }
       }
     } catch (e) {
       console.warn('Delete API call failed:', e);
