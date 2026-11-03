@@ -1006,9 +1006,9 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // Call standalone Python Real Saree generator (Full Body, No Face-Swap Crop)
+    // 100% In-House Local Fast Saree Drape Engine - Instant, Offline, No Token, No GPU Required
     return [
-      { name: '👗 Real Body In-House Saree Try-On', provider: this.pythonAI }
+      { name: '✨ VASTRA In-House Smart Saree Drape', provider: this.localFaceSwap }
     ];
   }
 
