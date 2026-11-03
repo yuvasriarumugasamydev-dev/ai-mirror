@@ -71,6 +71,16 @@ app.get('/api/health', (req, res) => {
     lanIp,
     timestamp: new Date().toISOString()
   });
+
+  app.use('/api/tryon', (error, req, res, next) => {
+    if (!error) return next();
+    console.error('[TryOn API middleware error]:', error);
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Try-on API request failed.',
+      error: error.message
+    });
+  });
 });
 
 // Serve Frontend Client in Production (including /admin SPA route)

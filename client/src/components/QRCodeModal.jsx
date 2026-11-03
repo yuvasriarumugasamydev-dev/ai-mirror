@@ -22,8 +22,8 @@ export const QRCodeModal = () => {
         // Fallback to current browser hostname if offline
         setNetworkInfo({
           lanIp: window.location.hostname,
-          port: '5050',
-          baseUrl: `http://${window.location.hostname}:5050`
+          port: '5055',
+          baseUrl: `http://${window.location.hostname}:5055`
         });
       });
   }, []);
@@ -41,7 +41,7 @@ export const QRCodeModal = () => {
     const hostIp = networkInfo?.lanIp && networkInfo.lanIp !== '127.0.0.1' && networkInfo.lanIp !== 'localhost'
       ? networkInfo.lanIp
       : window.location.hostname;
-    const port = networkInfo?.port || '5050';
+    const port = networkInfo?.port || '5055';
 
     // Must use the PC's local network IP (e.g. http://192.168.x.x:PORT/results/<id>), not localhost
     const payload = `http://${hostIp}:${port}/results/${snapId}`;
@@ -83,7 +83,7 @@ export const QRCodeModal = () => {
 
   const snapId = activeQRSnap.snapshotId || activeQRSnap.id || 'snap_latest';
   const displayHost = networkInfo?.lanIp || window.location.hostname;
-  const displayPort = networkInfo?.port || '5050';
+  const displayPort = networkInfo?.port || '5055';
   const qrTargetUrl = `http://${displayHost}:${displayPort}/results/${snapId}`;
 
   return (

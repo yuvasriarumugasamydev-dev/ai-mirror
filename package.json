@@ -15,7 +15,7 @@
     "install:all": "npm run install:server && npm run install:client && npm run install:electron",
     "dev": "concurrently \"npm run server:dev\" \"npm run client\"",
     "start": "npm run server",
-    "electron:dev": "cd electron && npm run dev",
+    "electron:dev": "concurrently \"npm run client\" \"cd electron && npm run dev\"",
     "electron:build": "npm run client:build && cd electron && npm run build:win",
     "desktop": "npm run electron:build"
   },

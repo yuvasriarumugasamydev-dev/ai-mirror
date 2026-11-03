@@ -9,6 +9,7 @@ class TryOnJobManager {
   createJob({
     personBuffer,
     garmentPathOrUrl,
+    targetImagePathOrUrl,
     garmentName,
     category = 'saree',
     modelPreference = 'auto',
@@ -39,6 +40,7 @@ class TryOnJobManager {
     this._executeJob(jobId, {
       personBuffer,
       garmentPathOrUrl,
+      targetImagePathOrUrl,
       garmentName,
       category,
       modelPreference,

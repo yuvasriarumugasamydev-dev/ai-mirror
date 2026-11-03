@@ -5,7 +5,10 @@ import { jobManager } from '../services/jobManager.js';
 const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 } // 25MB max
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB max per file
+    fieldSize: 25 * 1024 * 1024  // Allow large text fields
+  }
 });
 
 /**
@@ -24,6 +27,7 @@ router.post(
       const {
         garment_url,
         try_on_image_url,
+        target_image_url,
         garment_name,
         category,
         model_preference,
@@ -53,6 +57,7 @@ router.post(
       const jobId = jobManager.createJob({
         personBuffer: personFile.buffer,
         garmentPathOrUrl: garmentTarget,
+        targetImagePathOrUrl: target_image_url || garment_url || try_on_image_url,
         garmentName: garment_name || 'Traditional Silk Saree',
         category: category || 'saree',
         modelPreference: model_preference || 'auto',
@@ -68,7 +73,7 @@ router.post(
         message: 'Virtual try-on job submitted successfully. Please poll /api/tryon/:jobId for progress.'
       });
     } catch (error) {
-      console.error('[POST /api/tryon error]:', error.message);
+      console.error('[POST /api/tryon error]:', error);
       return res.status(500).json({
         success: false,
         message: error.message || 'Failed to initialize try-on job.',
