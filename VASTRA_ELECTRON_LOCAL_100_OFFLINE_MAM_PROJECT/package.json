@@ -1,0 +1,43 @@
+{
+  "name": "vastra-local-saree-ai",
+  "version": "1.0.0",
+  "description": "VASTRA - Local Saree AI - 100% Offline - No Cloud - Electron + CatVTON",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --win --mac --linux",
+    "install-python": "pip install -r python_backend/requirements.txt"
+  },
+  "keywords": [
+    "saree",
+    "ai",
+    "try-on",
+    "vastra",
+    "local",
+    "electron",
+    "catvton",
+    "offline"
+  ],
+  "author": "Yuvasri",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "python-shell": "^5.0.0",
+    "cors": "^2.8.5"
+  },
+  "build": {
+    "appId": "com.vastra.localai",
+    "productName": "VASTRA Local Saree AI",
+    "files": [
+      "main.js",
+      "renderer/**/*",
+      "python_backend/**/*",
+      "assets/**/*",
+      "package.json"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+
+torch
+torchvision
+diffusers
+transformers
+accelerate
+Pillow
+flask
+flask-cors
+opencv-python-headless
+numpy
+scipy
+xformers --no-deps; sys_platform != 'win32'

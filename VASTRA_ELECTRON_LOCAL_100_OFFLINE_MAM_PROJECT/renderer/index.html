@@ -1,0 +1,314 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VASTRA - Local Saree AI - 100% Offline - Mam Project</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#fff7ed;color:#431407;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+  .titlebar{height:32px;background:#7c2d12;color:#fff;display:flex;align-items:center;padding:0 16px;-webkit-app-region:drag;font-weight:700;letter-spacing:0.5px}
+  .titlebar span{font-size:13px}
+  .badge{margin-left:auto;background:#fed7aa;color:#7c2d12;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800}
+  .main{flex:1;display:grid;grid-template-columns:380px 1fr 380px;gap:16px;padding:16px;background:radial-gradient(800px 400px at 20% 0%, #ffedd5 0%, #fff7ed 60%)}
+  .card{background:#fff;border:1px solid #fed7aa;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(124,45,18,0.08);display:flex;flex-direction:column;gap:12px}
+  .card h3{font-size:14px;font-weight:800;color:#9a3412;letter-spacing:0.5px;text-transform:uppercase}
+  .drop{border:2px dashed #fdba74;border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:#fff7ed;transition:0.2s;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .drop:hover{border-color:#f97316;background:#ffedd5}
+  .drop img{max-width:100%;max-height:240px;border-radius:8px;object-fit:contain}
+  .btn{width:100%;padding:12px;border-radius:12px;border:0;background:#7c2d12;color:#fff;font-weight:700;cursor:pointer;transition:0.2s;font-size:14px}
+  .btn:hover{background:#9a3412;transform:translateY(-1px)}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+  .btn.secondary{background:#fff;border:1px solid #fed7aa;color:#7c2d12}
+  .center{display:flex;flex-direction:column;gap:16px}
+  .preview{flex:1;background:#fff;border:1px solid #fed7aa;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;min-height:500px}
+  .preview img{max-width:100%;max-height:600px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12)}
+  .status{padding:10px 14px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .status.dot::before{content:'';width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;animation:pulse 1s infinite}
+  .status.ok{background:#dcfce7;color:#166534}
+  .status.ok::before{background:#22c55e}
+  @keyframes pulse{0%,100%{opacity:1} 50%{opacity:0.3}}
+  .log{height:120px;overflow:auto;background:#1c0a00;color:#fed7aa;padding:10px;border-radius:8px;font-family:monospace;font-size:11px;white-space:pre-wrap}
+  .small{font-size:11px;color:#9a3412;opacity:0.8;line-height:1.4}
+  .row{display:flex;gap:8px}
+  .pill{padding:4px 8px;border-radius:999px;background:#ffedd5;font-size:10px;font-weight:700;color:#7c2d12}
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <span>🧡 VASTRA - Local Saree AI - 100% Offline - Electron - Mam Project</span>
+    <div class="badge">LOCAL • OFFLINE • NO CLOUD • NO API</div>
+  </div>
+  
+  <div class="main">
+    <!-- Left: Person -->
+    <div class="card">
+      <h3>👩 Person Photo</h3>
+      <div class="drop" id="personDrop">
+        <div id="personPlaceholder">
+          <div style="font-size:40px">👩</div>
+          <div style="font-weight:700">Click to select Person</div>
+          <div class="small">Full body, white background best ma!</div>
+        </div>
+        <img id="personImg" style="display:none"/>
+      </div>
+      <div class="row">
+        <button class="btn secondary" onclick="selectImage('person')">📁 Browse</button>
+        <button class="btn secondary" onclick="clearImage('person')">Clear</button>
+      </div>
+      <div class="small">✅ Face same ma - Real face ma! Mam sonna local ma!</div>
+    </div>
+
+    <!-- Center: Preview + Action -->
+    <div class="center">
+      <div class="preview" id="previewBox">
+        <div id="previewPlaceholder" style="text-align:center">
+          <div style="font-size:60px">👗</div>
+          <h2 style="color:#7c2d12">VASTRA Local AI</h2>
+          <p class="small">100% Offline • Electron • No Cloud • No Vultr • No Render • No 3rd Party</p>
+          <p class="small">Mam sonna Local Software ma!</p>
+          <div style="margin-top:12px" class="status dot" id="backendStatus">Connecting to Local AI...</div>
+        </div>
+        <img id="resultImg" style="display:none"/>
+        <div id="resultActions" style="display:none; width:100%; gap:8px; flex-direction:column">
+          <div class="row" style="width:100%">
+            <button class="btn" onclick="downloadResult()">⬇️ Download Saree Image</button>
+            <button class="btn secondary" onclick="resetAll()">🔄 New Try-On</button>
+          </div>
+        </div>
+      </div>
+      
+      <button class="btn" id="generateBtn" disabled style="padding:16px; font-size:16px" onclick="generateSaree()">
+        ✨ Generate Saree - Local AI - 100% Offline
+      </button>
+      
+      <div class="log" id="logBox">🚀 VASTRA Local Starting ma...
+Mam sonna Electron + Local Software ma!
+No Cloud ma! No API ma!
+Waiting for backend ma...
+</div>
+    </div>
+
+    <!-- Right: Cloth -->
+    <div class="card">
+      <h3>👘 Saree Photo</h3>
+      <div class="drop" id="clothDrop">
+        <div id="clothPlaceholder">
+          <div style="font-size:40px">👘</div>
+          <div style="font-weight:700">Click to select Saree</div>
+          <div class="small">Mannequin or hanger photo ma!</div>
+        </div>
+        <img id="clothImg" style="display:none"/>
+      </div>
+      <div class="row">
+        <button class="btn secondary" onclick="selectImage('cloth')">📁 Browse</button>
+        <button class="btn secondary" onclick="clearImage('cloth')">Clear</button>
+      </div>
+      <div class="small">✅ Elegant Silk, Cotton, Designer Saree ma! Full drape ma! Pleats + Pallu ma!</div>
+      <div style="margin-top:auto">
+        <h3>📊 Status</h3>
+        <div id="jobStatus" class="small">Ready ma! Select photos ma!</div>
+        <div style="margin-top:8px" class="row">
+          <span class="pill">OFFLINE</span>
+          <span class="pill">ELECTRON</span>
+          <span class="pill">NSFW OFF</span>
+          <span class="pill">LOCAL</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const { ipcRenderer } = require('electron');
+let personB64 = null, clothB64 = null, resultB64 = null;
+let backendReady = false;
+
+function log(msg){
+  const box = document.getElementById('logBox');
+  box.textContent += '\n' + new Date().toLocaleTimeString() + ' - ' + msg;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function checkBackend(){
+  try{
+    const res = await fetch('http://127.0.0.1:5000/health');
+    const data = await res.json();
+    backendReady = true;
+    document.getElementById('backendStatus').textContent = `✅ Local AI Ready ma! ${data.device} - ${data.model_loaded ? 'Model Loaded' : 'Mock Mode'}`;
+    document.getElementById('backendStatus').className = 'status ok';
+    log(`✅ Backend ready ma! ${JSON.stringify(data)}`);
+    updateGenerateBtn();
+  }catch(e){
+    backendReady = false;
+    document.getElementById('backendStatus').textContent = '⏳ Connecting... Python backend starting ma... 30 sec wait ma!';
+    log('⏳ Backend not ready ma... retry ma...');
+    setTimeout(checkBackend, 2000);
+  }
+}
+checkBackend();
+
+ipcRenderer.on('python-log', (e, msg) => log(msg));
+
+function fileToB64(file){
+  return new Promise((res, rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function selectImage(type){
+  const filePath = await ipcRenderer.invoke('select-image');
+  if(!filePath) return;
+  const resp = await fetch('file://' + filePath);
+  // For Electron, use fs
+  const fs = require('fs');
+  const data = fs.readFileSync(filePath);
+  const b64 = 'data:image/jpeg;base64,' + data.toString('base64');
+  if(type==='person'){
+    personB64 = b64;
+    document.getElementById('personImg').src = b64;
+    document.getElementById('personImg').style.display='block';
+    document.getElementById('personPlaceholder').style.display='none';
+  }else{
+    clothB64 = b64;
+    document.getElementById('clothImg').src = b64;
+    document.getElementById('clothImg').style.display='block';
+    document.getElementById('clothPlaceholder').style.display='none';
+  }
+  updateGenerateBtn();
+  log(`✅ ${type} selected ma! ${filePath}`);
+}
+
+function clearImage(type){
+  if(type==='person'){
+    personB64=null;
+    document.getElementById('personImg').style.display='none';
+    document.getElementById('personPlaceholder').style.display='flex';
+  }else{
+    clothB64=null;
+    document.getElementById('clothImg').style.display='none';
+    document.getElementById('clothPlaceholder').style.display='flex';
+  }
+  updateGenerateBtn();
+}
+
+function updateGenerateBtn(){
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = !(personB64 && clothB64 && backendReady);
+  if(btn.disabled){
+    btn.textContent = !backendReady ? '⏳ Waiting for Local AI...' : 'Select Person + Saree ma!';
+  }else{
+    btn.textContent = '✨ Generate Saree - Local AI - 100% Offline';
+  }
+}
+
+async function generateSaree(){
+  if(!personB64 || !clothB64) return;
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating ma... Local AI thinking ma... 30 sec ma!';
+  
+  document.getElementById('previewPlaceholder').style.display='none';
+  document.getElementById('resultImg').style.display='none';
+  document.getElementById('resultActions').style.display='none';
+  document.getElementById('jobStatus').textContent = '⚡ Processing ma... CatVTON Local ma...';
+  log('⚡ Generating ma... Person + Saree -> Local AI ma...');
+
+  try{
+    // Step 1: Queue
+    const qRes = await fetch('http://127.0.0.1:5000/tryon', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({person_image: personB64, cloth_image: clothB64})
+    });
+    const qData = await qRes.json();
+    log(`✅ Queued ma! Job: ${qData.job_id}`);
+    
+    // Step 2: Poll
+    const jobId = qData.job_id;
+    let attempts = 0;
+    while(attempts < 60){
+      await new Promise(r=>setTimeout(r, 2000));
+      const pRes = await fetch(`http://127.0.0.1:5000/tryon/job/${jobId}`);
+      const pData = await pRes.json();
+      log(`Poll ${attempts}: ${pData.status} ma!`);
+      document.getElementById('jobStatus').textContent = `⏳ ${pData.status} ma... ${attempts*2} sec ma!`;
+      
+      if(pData.status==='completed'){
+        resultB64 = pData.result_image;
+        document.getElementById('resultImg').src = resultB64;
+        document.getElementById('resultImg').style.display='block';
+        document.getElementById('resultActions').style.display='flex';
+        document.getElementById('jobStatus').textContent = '✅ Done ma! Perfect Saree ma! Local ma!';
+        btn.textContent = '✅ Done ma! Download ma!';
+        btn.disabled = false;
+        log('✅ Saree Ready ma! Local 100% Offline ma!');
+        return;
+      }else if(pData.status==='failed'){
+        throw new Error(pData.error || 'Failed ma!');
+      }
+      attempts++;
+    }
+    throw new Error('Timeout ma! 120 sec over ma!');
+    
+  }catch(e){
+    log(`❌ Error ma: ${e.message}`);
+    document.getElementById('jobStatus').textContent = `❌ Error ma: ${e.message}`;
+    btn.disabled = false;
+    btn.textContent = '❌ Error ma - Retry ma!';
+  }
+}
+
+function downloadResult(){
+  if(!resultB64) return;
+  const a = document.createElement('a');
+  a.href = resultB64;
+  a.download = `VASTRA_Saree_${Date.now()}.jpg`;
+  a.click();
+  log('⬇️ Downloaded ma!');
+}
+
+function resetAll(){
+  document.getElementById('resultImg').style.display='none';
+  document.getElementById('resultActions').style.display='none';
+  document.getElementById('previewPlaceholder').style.display='block';
+  document.getElementById('jobStatus').textContent = 'Ready ma!';
+  updateGenerateBtn();
+}
+
+// Drag & Drop
+['personDrop','clothDrop'].forEach(id=>{
+  const el = document.getElementById(id);
+  el.addEventListener('dragover', e=>{e.preventDefault(); el.style.borderColor='#f97316'});
+  el.addEventListener('dragleave', e=>{el.style.borderColor='#fdba74'});
+  el.addEventListener('drop', async e=>{
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if(!file) return;
+    const b64 = await fileToB64(file);
+    if(id==='personDrop'){
+      personB64=b64;
+      document.getElementById('personImg').src=b64;
+      document.getElementById('personImg').style.display='block';
+      document.getElementById('personPlaceholder').style.display='none';
+    }else{
+      clothB64=b64;
+      document.getElementById('clothImg').src=b64;
+      document.getElementById('clothImg').style.display='block';
+      document.getElementById('clothPlaceholder').style.display='none';
+    }
+    updateGenerateBtn();
+  });
+  el.addEventListener('click', ()=>{
+    if(id==='personDrop') selectImage('person');
+    else selectImage('cloth');
+  });
+});
+
+ipcRenderer.send('app-ready');
+</script>
+</body>
+</html>
