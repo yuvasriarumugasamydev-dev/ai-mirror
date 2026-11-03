@@ -1008,10 +1008,10 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // 100% Local Fast AI Face Swap & Drape (In-House, No 3rd-party Cloud Quotas)
+    // 100% In-House Local CPU Diffusion - Drapes saree directly over the customer's real body & pose
     return [
-      { name: '✨ Local AI Saree Try-On', provider: this.localFaceSwap },
-      { name: 'LCInd Face API', provider: this.lcindFaceSwap }
+      { name: '🧠 Local In-House AI Body Drape (Diffusion)', provider: this.localCpu },
+      { name: '✨ Local Instant Face Swap', provider: this.localFaceSwap }
     ];
   }
 
