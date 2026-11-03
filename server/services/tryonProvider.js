@@ -1006,11 +1006,9 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // 100% Pure CatVTON Try-On First (Direct Public ZeroGPU)
+    // 100% In-House Local Engine - No Hugging Face, No Third Party APIs
     return [
-      { name: '🎨 Real CatVTON Try-On (Neural Saree Drape)', provider: this.catvton },
-      { name: '🎨 Python AI Try-On (Leffa/Diffusion)', provider: this.pythonAI },
-      { name: '✨ Local Instant Face Swap', provider: this.localFaceSwap }
+      { name: '✨ VASTRA In-House AI Saree Drape', provider: this.localFaceSwap }
     ];
   }
 
