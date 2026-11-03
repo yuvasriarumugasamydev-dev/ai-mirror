@@ -1006,9 +1006,9 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // 100% In-House Local Engine - No Hugging Face, No Third Party APIs
+    // Call standalone Python Real Saree generator (Full Body, No Face-Swap Crop)
     return [
-      { name: '✨ VASTRA In-House AI Saree Drape', provider: this.localFaceSwap }
+      { name: '👗 Real Body In-House Saree Try-On', provider: this.pythonAI }
     ];
   }
 
