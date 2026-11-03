@@ -226,13 +226,11 @@ export class CatVTONProvider extends BaseTryOnProvider {
   }
 
   async getClient() {
-    const token = process.env.HF_TOKEN?.trim();
-    if (!token) throw new Error('HF_TOKEN not found in server/.env');
-
     if (!this.client) {
       const { Client } = await import('@gradio/client');
       console.log(`[CatVTONProvider]: Connecting to ${this.spaceName}...`);
-      this.client = await Client.connect(this.spaceName, { token });
+      const token = process.env.HF_TOKEN?.trim();
+      this.client = await Client.connect(this.spaceName, token ? { token } : undefined);
       console.log(`[CatVTONProvider]: Connected to ${this.spaceName}`);
     }
     return this.client;
@@ -1008,9 +1006,10 @@ export class ResilientTryOnManager {
   }
 
   getExecutionPlan(modelPreference = 'auto') {
-    // 100% In-House Real Body AI Drape (CatVTON/Leffa/Diffusion) + Fast Face-Swap Fallback
+    // 100% Pure CatVTON Try-On First (Direct Public ZeroGPU)
     return [
-      { name: '🎨 Real In-House AI Body Drape (CatVTON/Leffa)', provider: this.pythonAI },
+      { name: '🎨 Real CatVTON Try-On (Neural Saree Drape)', provider: this.catvton },
+      { name: '🎨 Python AI Try-On (Leffa/Diffusion)', provider: this.pythonAI },
       { name: '✨ Local Instant Face Swap', provider: this.localFaceSwap }
     ];
   }
