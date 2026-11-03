@@ -1,30 +1,23 @@
 @echo off
-title VASTRA AI Mirror - GPU Server
+title VASTRA AI Mirror - GPU Server (CatVTON)
 color 0B
 
 echo ============================================================
-echo   VASTRA AI Mirror - Starting GPU-Powered Servers
+echo   VASTRA AI Mirror - CatVTON GPU Servers
+echo   Real Photorealistic Virtual Try-On
 echo ============================================================
 echo.
 
-REM Check venv exists
 if not exist "api\.venv-gpu\Scripts\python.exe" (
     echo [ERROR] GPU venv not found! Run setup_gpu.bat first.
     pause
     exit /b 1
 )
 
-REM Check Node
-node --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Node.js not found! Install from nodejs.org
-    pause
-    exit /b 1
-)
-
-echo [1] Starting Python GPU API on port 5002...
-start "VASTRA GPU API" cmd /k "cd api && .\.venv-gpu\Scripts\python.exe app_gpu.py"
-timeout /t 4 /nobreak >nul
+echo [1] Starting CatVTON GPU API on port 5002...
+echo     First try-on will auto-download model ^(~3-4 GB, one time^)
+start "VASTRA CatVTON GPU API" cmd /k "cd api && .\.venv-gpu\Scripts\python.exe app_gpu.py"
+timeout /t 5 /nobreak >nul
 
 echo [2] Starting Node.js server on port 5050...
 start "VASTRA Node Server" cmd /k "cd server && node server.js"
@@ -36,16 +29,13 @@ timeout /t 3 /nobreak >nul
 
 echo.
 echo ============================================================
-echo   All 3 servers are starting!
+echo   All 3 servers starting!
 echo.
 echo   Open browser: http://localhost:3000
 echo.
-echo   GPU API:      http://localhost:5002
-echo   Node Server:  http://localhost:5050
+echo   IMPORTANT:
+echo   First try-on takes ~2-5 min ^(model loading + download^)
+echo   After that: 20-30 seconds per REAL photorealistic try-on!
 echo ============================================================
 echo.
-echo   First try-on will take 1-2 minutes (model loading)
-echo   After that: 20-30 seconds per try-on on GPU!
-echo.
 pause
-
